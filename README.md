@@ -88,6 +88,37 @@ Once completed, check the directory `data/jobs/<job_id>/progressive/` where you 
 - `manifest.json`: Benchmark metrics containing execution timings and pipeline speed ratios.
 - `instrumental_chunks/`: Isolated instrumental chunks for each segment.
 
+### Live Separation Core (Experimental)
+
+The core live separation feature runs a two-terminal workflow using a local file-system manifest (`live_manifest.json`) as the contract between the producer and the playback consumer:
+
+1. **Terminal 1: Start the Producer**:
+   Downloads the YouTube video and sequentially processes chunks as they become available:
+   ```bash
+   uv run python scripts/run_live_separation.py -u "https://www.youtube.com/watch?v=dQw4w9WgXcQ" -c 30.0 --max-chunks 3
+   ```
+   *Note: When the first chunk is ready, it will log a `[READY]` message with the manifest path and exact playback command.*
+
+2. **Terminal 2: Start the Playback Consumer**:
+   Run the command logged by the producer (or specify the manifest path directly) to watch the manifest and play ready instrumental chunks in sequence:
+   ```bash
+   uv run python scripts/play_live_chunks.py "data/jobs/<job_id>/live/live_manifest.json"
+   ```
+
+Options for `run_live_separation.py`:
+- `-u`, `--url`: YouTube URL to separate (required)
+- `-o`, `--output-dir`: Output directory path
+- `-c`, `--chunk-duration`: Chunk window length in seconds (default: `30.0`)
+- `-m`, `--model`: Demucs model name (default: `htdemucs`)
+- `-f`, `--format`: Output format (default: `wav`)
+- `--max-chunks`: Max number of chunks to process (useful for debugging/testing)
+
+Options for `play_live_chunks.py`:
+- `manifest`: Path to the manifest JSON file (required)
+- `-p`, `--poll-interval`: Interval in seconds to poll manifest (default: `1.0`)
+- `-t`, `--timeout`: Idle timeout in seconds before exiting (default: `60.0`)
+- `--player-cmd`: Override default `ffplay` command prefix (e.g. `aplay` or `ffplay -nodisp`)
+
 ### Running the API Server
 
 Start the local FastAPI development server:

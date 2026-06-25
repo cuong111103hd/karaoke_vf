@@ -41,3 +41,10 @@ This experimental layer is built to test streaming feasibility:
 - It stitches the resulting instrumental chunks back together using the `acrossfade` filter in `ffmpeg` to produce a listening preview.
 - It computes timings and speed metrics using `src/app/utils/benchmark.py` and records them in a JSON manifest.
 - This layer has no dependencies on FastAPI or server databases, allowing it to remain fully portable.
+
+### 4. Core Live Separation Layer (`src/app/services/live/`, `src/app/services/playback/`)
+This experimental layer is built to prove the live producer-consumer loop:
+- **Live Separation Producer (`src/app/services/live/`)**: Accepts a YouTube URL, downloads/normalizes the audio, plans sequential chunks, extracts source chunks, runs Demucs on each chunk, publishes the instrumental chunk, and atomically updates `live_manifest.json` at every step. It logs a ready signal when the first chunk (chunk 0) is ready to play.
+- **Playback Consumer (`src/app/services/playback/`)**: A separate process that watches `live_manifest.json` for ready chunks and plays them in order using the local player wrapper (`ffplay` subprocess).
+- Both components communicate solely through the local file system using the atomic manifest as the contract, keeping the system fully portable and free of API server/WebSocket/HLS dependencies.
+

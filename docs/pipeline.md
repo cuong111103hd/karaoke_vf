@@ -37,4 +37,6 @@ The project separates audio processing behaviors into different modes to evaluat
 | --- | --- | --- | --- | --- |
 | **Full-Song Batch** | Full download | Full audio track | Full `instrumental` and `vocals` stems | High-quality baseline, used for standard server jobs. |
 | **Simulated Progressive** | Full download/local file | Overlapping chunk windows (e.g. 30s) | Multiple chunk files, a joined preview, and timing manifest | Feasibility study for chunked processing quality and speed. |
+| **Core Live (Experimental)** | Full download (simulated stream source) | Sequential chunks (e.g. 30s) | Multiple chunk files, live manifest, and ffplay local playback | Verifying live loop, chunk planning, first-ready signal, and playback consumer. |
 | **True Streaming (Roadmap)** | Progressive stream buffer | Rolling chunk window / sliding overlap | Real-time audio stream output (HLS/WebSockets) | Target mode for low-latency streaming karaoke player. |
+

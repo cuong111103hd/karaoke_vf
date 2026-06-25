@@ -70,3 +70,32 @@ def ensure_progressive_workspace(job_id: str) -> None:
     get_chunks_dir(job_id).mkdir(parents=True, exist_ok=True)
     get_demucs_chunks_dir(job_id).mkdir(parents=True, exist_ok=True)
     get_instrumental_chunks_dir(job_id).mkdir(parents=True, exist_ok=True)
+
+def get_live_dir(job_id: str) -> Path:
+    """Get the root directory for a live separation run."""
+    return get_job_dir(job_id) / "live"
+
+def get_live_source_chunks_dir(job_id: str) -> Path:
+    """Get the live source chunks directory."""
+    return get_live_dir(job_id) / "source_chunks"
+
+def get_live_demucs_chunks_dir(job_id: str) -> Path:
+    """Get the live Demucs output chunks directory."""
+    return get_live_dir(job_id) / "demucs_chunks"
+
+def get_live_instrumental_chunks_dir(job_id: str) -> Path:
+    """Get the live extracted instrumental chunks directory."""
+    return get_live_dir(job_id) / "instrumental_chunks"
+
+def get_live_manifest_path(job_id: str) -> Path:
+    """Get the live manifest JSON path."""
+    return get_live_dir(job_id) / "live_manifest.json"
+
+def ensure_live_workspace(job_id: str) -> None:
+    """Create all directories needed for live separation."""
+    ensure_job_workspace(job_id)
+    get_live_dir(job_id).mkdir(parents=True, exist_ok=True)
+    get_live_source_chunks_dir(job_id).mkdir(parents=True, exist_ok=True)
+    get_live_demucs_chunks_dir(job_id).mkdir(parents=True, exist_ok=True)
+    get_live_instrumental_chunks_dir(job_id).mkdir(parents=True, exist_ok=True)
+
