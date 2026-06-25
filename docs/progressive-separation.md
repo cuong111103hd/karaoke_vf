@@ -45,6 +45,9 @@ The `manifest.json` file contains:
   - `average_chunk_processing_seconds`: Mean time to separate a single chunk.
   - `chunk_speed_ratio`: `total_audio_duration` divided by `total_chunk_processing_seconds`. Values > 1.0 are faster than real-time.
   - `is_realtime_capable`: Boolean indicating if the GPU/CPU can process audio faster than it plays.
+- `metadata.preview_created`: Boolean indicating whether `progressive_preview.wav` was created.
+
+If any chunk fails, the run writes `manifest.json` with the failed chunk details and does not create a partial preview by default. This prevents accidentally judging an incomplete timeline as a valid karaoke preview.
 
 ## A/B Listening Workflow
 
@@ -54,6 +57,7 @@ To compare the quality of chunk-based separation vs full-song separation:
    ```bash
    uv run python scripts/run_progressive_separation.py -u "https://www.youtube.com/watch?v=dQw4w9WgXcQ" --compare
    ```
+   The comparison mode is currently supported only for YouTube URL input because the existing full-song batch separation service accepts YouTube URLs.
 2. Once complete, you will find:
    - Full-song instrumental: `data/jobs/<job_id>/instrumental.wav`
    - Progressive preview: `data/jobs/<job_id>/progressive/progressive_preview.wav`

@@ -68,6 +68,26 @@ Options:
 - `-f`, `--format`: Output format (default: `wav`)
 - `--compare`: Simultaneously run standard full-song batch separation for A/B comparison
 
+#### How to Test / Running Experiments
+
+You can verify and test this feature using one of the following methods:
+
+1. **Test with a YouTube URL**:
+   ```bash
+   uv run python scripts/run_progressive_separation.py -u "https://www.youtube.com/watch?v=dQw4w9WgXcQ" -c 30.0 -ov 5.0
+   ```
+
+2. **Test with a Local Music File**:
+   ```bash
+   uv run python scripts/run_progressive_separation.py -l "path/to/your/song.mp3" -c 30.0 -ov 5.0
+   ```
+
+**Verifying the Outputs**:
+Once completed, check the directory `data/jobs/<job_id>/progressive/` where you will find:
+- `progressive_preview.wav`: The fully stitched instrumental output using crossfade.
+- `manifest.json`: Benchmark metrics containing execution timings and pipeline speed ratios.
+- `instrumental_chunks/`: Isolated instrumental chunks for each segment.
+
 ### Running the API Server
 
 Start the local FastAPI development server:

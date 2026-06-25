@@ -117,10 +117,38 @@ def run_progressive_separation(options: ProgressiveOptions, job_id: Optional[str
             
     # 4. Concat preview using acrossfade
     successful_chunks = [c for c in chunks if c.error_message is None and c.instrumental_path is not None]
+    failed_chunks = [c for c in chunks if c.error_message is not None or c.instrumental_path is None]
     preview_path = get_progressive_preview_path(job_id)
     
-    if not successful_chunks:
-        raise RuntimeError("Cannot join preview: all chunks failed separation.")
+    if failed_chunks:
+        total_elapsed = time.time() - total_start
+        metrics = calculate_benchmark_metrics(chunks, source_duration, total_elapsed)
+        result = ProgressiveResult(
+            job_id=job_id,
+            youtube_url=options.youtube_url,
+            local_audio_path=options.local_audio_path,
+            video_title=video_title,
+            source_duration=source_duration,
+            chunk_duration=options.chunk_duration,
+            overlap=options.overlap,
+            model_name=model_name,
+            output_format=output_format,
+            preview_path=str(preview_path),
+            manifest_path=str(get_progressive_manifest_path(job_id)),
+            elapsed_seconds=total_elapsed,
+            chunks=chunks,
+            metadata={
+                "youtube_metadata": youtube_meta,
+                "benchmark_metrics": metrics,
+                "preview_created": False
+            }
+        )
+        write_progressive_manifest(result, get_progressive_manifest_path(job_id))
+        failed_indexes = ", ".join(str(c.index) for c in failed_chunks)
+        raise RuntimeError(
+            f"Cannot join progressive preview because chunk(s) failed: {failed_indexes}. "
+            f"Manifest written to {result.manifest_path}."
+        )
         
     logger.info(f"[{job_id}] Stitching {len(successful_chunks)} successful chunks...")
     concatenate_chunks(
@@ -131,19 +159,22 @@ def run_progressive_separation(options: ProgressiveOptions, job_id: Optional[str
     
     # 5. Optional Full-Song Separation for Comparison
     if options.run_comparison:
-        logger.info(f"[{job_id}] Running full-song separation batch for A/B comparison...")
-        try:
-            run_separation(
-                SeparationOptions(
-                    youtube_url=options.youtube_url or str(options.local_audio_path),
-                    model_name=model_name,
-                    output_format=output_format
-                ),
-                job_id=job_id
-            )
-            logger.info(f"[{job_id}] Full-song A/B comparison completed successfully.")
-        except Exception as e:
-            logger.error(f"[{job_id}] Full-song comparison failed: {e}")
+        if options.youtube_url:
+            logger.info(f"[{job_id}] Running full-song separation batch for A/B comparison...")
+            try:
+                run_separation(
+                    SeparationOptions(
+                        youtube_url=options.youtube_url,
+                        model_name=model_name,
+                        output_format=output_format
+                    ),
+                    job_id=job_id
+                )
+                logger.info(f"[{job_id}] Full-song A/B comparison completed successfully.")
+            except Exception as e:
+                logger.error(f"[{job_id}] Full-song comparison failed: {e}")
+        else:
+            logger.warning(f"[{job_id}] Full-song comparison is only supported for YouTube URL input.")
             
     total_elapsed = time.time() - total_start
     
@@ -166,7 +197,8 @@ def run_progressive_separation(options: ProgressiveOptions, job_id: Optional[str
         chunks=chunks,
         metadata={
             "youtube_metadata": youtube_meta,
-            "benchmark_metrics": metrics
+            "benchmark_metrics": metrics,
+            "preview_created": True
         }
     )
     

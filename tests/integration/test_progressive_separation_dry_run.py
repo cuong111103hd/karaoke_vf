@@ -2,6 +2,7 @@ import sys
 import importlib
 from pathlib import Path
 from unittest.mock import patch
+import pytest
 
 # Add src folder to sys.path to resolve imports correctly
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "src"))
@@ -80,3 +81,108 @@ def test_progressive_separation_dry_run(tmp_path, monkeypatch) -> None:
          # Check preview file exists and was written
          preview_path = Path(result.preview_path)
          assert preview_path.exists()
+
+def test_progressive_separation_chunk_failure_writes_manifest_without_preview(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    
+    import app.config.settings
+    importlib.reload(app.config.settings)
+    
+    import app.storage.paths
+    importlib.reload(app.storage.paths)
+    
+    import app.services.progressive_separation_service
+    importlib.reload(app.services.progressive_separation_service)
+    
+    from app.services.progressive_separation_service import run_progressive_separation
+    from app.services.models import ProgressiveOptions
+    
+    job_id = "prog-failing-chunk-job"
+    
+    def mock_run_demucs_side_effect(input_path, output_dir, model_name):
+        chunk_name = input_path.stem
+        if chunk_name == "chunk_001":
+            raise RuntimeError("demucs failed for chunk 1")
+        track_dir = output_dir / model_name / chunk_name
+        track_dir.mkdir(parents=True, exist_ok=True)
+        (track_dir / "no_vocals.wav").write_text("dummy instrumental WAV content")
+    
+    with patch("app.services.progressive_separation_service.download_youtube_audio") as mock_download, \
+         patch("app.services.progressive_separation_service.normalize_audio_file"), \
+         patch("app.services.progressive_separation_service.get_audio_duration", return_value=55.0), \
+         patch("app.services.progressive_separation_service.extract_chunk"), \
+         patch("app.services.progressive_separation_service.run_demucs", side_effect=mock_run_demucs_side_effect), \
+         patch("app.services.progressive_separation_service.concatenate_chunks") as mock_concat:
+         
+         raw_path = tmp_path / "jobs" / job_id / "downloads" / "raw.mp3"
+         raw_path.parent.mkdir(parents=True, exist_ok=True)
+         raw_path.write_text("dummy mp3 download")
+         mock_download.return_value = (raw_path, {"title": "Chunk Failure Case", "duration": 55.0})
+         
+         options = ProgressiveOptions(
+             youtube_url="https://youtube.com/watch?v=dQw4w9WgXcQ",
+             chunk_duration=30.0,
+             overlap=5.0
+         )
+         
+         with pytest.raises(RuntimeError, match="Cannot join progressive preview"):
+             run_progressive_separation(options, job_id=job_id)
+         
+         mock_concat.assert_not_called()
+         
+         manifest_path = tmp_path / "jobs" / job_id / "progressive" / "manifest.json"
+         preview_path = tmp_path / "jobs" / job_id / "progressive" / "progressive_preview.wav"
+         assert manifest_path.exists()
+         assert not preview_path.exists()
+         manifest_text = manifest_path.read_text()
+         assert "demucs failed for chunk 1" in manifest_text
+         assert '"preview_created": false' in manifest_text
+
+def test_progressive_local_compare_does_not_call_batch_separation(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    
+    import app.config.settings
+    importlib.reload(app.config.settings)
+    
+    import app.storage.paths
+    importlib.reload(app.storage.paths)
+    
+    import app.services.progressive_separation_service
+    importlib.reload(app.services.progressive_separation_service)
+    
+    from app.services.progressive_separation_service import run_progressive_separation
+    from app.services.models import ProgressiveOptions
+    
+    job_id = "prog-local-compare-job"
+    local_audio = tmp_path / "local.wav"
+    local_audio.write_text("dummy local audio")
+    
+    def mock_run_demucs_side_effect(input_path, output_dir, model_name):
+        chunk_name = input_path.stem
+        track_dir = output_dir / model_name / chunk_name
+        track_dir.mkdir(parents=True, exist_ok=True)
+        (track_dir / "no_vocals.wav").write_text("dummy instrumental WAV content")
+    
+    def mock_concat_side_effect(input_paths, output_path, overlap_seconds):
+        output_path.write_text("dummy joined preview")
+    
+    with patch("app.services.progressive_separation_service.download_youtube_audio") as mock_download, \
+         patch("app.services.progressive_separation_service.normalize_audio_file"), \
+         patch("app.services.progressive_separation_service.get_audio_duration", return_value=30.0), \
+         patch("app.services.progressive_separation_service.extract_chunk"), \
+         patch("app.services.progressive_separation_service.run_demucs", side_effect=mock_run_demucs_side_effect), \
+         patch("app.services.progressive_separation_service.concatenate_chunks", side_effect=mock_concat_side_effect), \
+         patch("app.services.progressive_separation_service.run_separation") as mock_batch:
+         
+         options = ProgressiveOptions(
+             local_audio_path=str(local_audio),
+             chunk_duration=30.0,
+             overlap=5.0,
+             run_comparison=True
+         )
+         
+         result = run_progressive_separation(options, job_id=job_id)
+         
+         assert result.local_audio_path == str(local_audio)
+         mock_download.assert_not_called()
+         mock_batch.assert_not_called()
