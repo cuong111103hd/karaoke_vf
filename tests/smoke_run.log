@@ -1,0 +1,6 @@
+Smoke Run: SKIPPED
+Reason: ffmpeg is not installed or not available in the system PATH.
+Details:
+- Command 'ffmpeg -version' returned status code 127 (command not found).
+- Since ffmpeg is a hard dependency of the normalization/transcoding stages, local separation cannot be run directly.
+- The pipeline was validated successfully using the comprehensive unit and mocked integration tests.

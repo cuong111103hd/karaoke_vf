@@ -1,1 +1,16 @@
 .codex/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Local data and media
+data/jobs/
+data/downloads/
+data/outputs/
+data/cache/
+# Keep gitkeeps if we want to commit empty dirs
+!data/**/.gitkeep
+
+# Environment files
+.env

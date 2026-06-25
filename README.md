@@ -1,0 +1,83 @@
+# Karaoke Separation Server & Pipeline
+
+A local, batch-oriented YouTube-to-karaoke audio separation server and portable pipeline. This project downloads audio from YouTube, normalizes it, runs HTDemucs separation to isolate vocals and instrumentals, and serves the results via a FastAPI development server. It is built to be run easily on local development machines or on Google Colab runtimes.
+
+## Key Features
+
+- **Portable Audio Pipeline**: Reusable batch separation pipeline capable of running on CPU or GPU.
+- **YouTube Integration**: Automatic download and metadata extraction via `yt-dlp`.
+- **Demucs Separation**: Separation using the active Python executable, avoiding vendoring or cloning Demucs.
+- **FastAPI Job Server**: Local dev server with asynchronous job queuing, status endpoint, and static file serving.
+- **Google Colab Friendly**: Specific entrypoint scripts that don't depend on server orchestration.
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.9+
+- `ffmpeg` (must be installed on your system and available in the system PATH)
+- `uv` (a fast Python package installer and resolver)
+
+### Installation
+
+Clone the repository and sync the virtual environment using `uv`:
+
+```bash
+uv sync
+```
+
+### Local Configuration
+
+Copy the env template to `.env` and adjust the variables as needed:
+
+```bash
+cp .env.example .env
+```
+
+## Running the Pipeline
+
+### Local CLI Separation
+
+Run the batch separation pipeline directly from your terminal using `uv`:
+
+```bash
+uv run python scripts/run_separation.py "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+```
+
+Options:
+- `-o`, `--output-dir`: Output directory for results (default: `data/jobs/<job_id>`)
+- `-m`, `--model`: Demucs model name (default: `htdemucs`)
+- `-f`, `--format`: Output format: wav, mp3, etc. (default: `wav`)
+- `-v`, `--verbose`: Enable verbose logging
+
+### Running the API Server
+
+Start the local FastAPI development server:
+
+```bash
+uv run python scripts/run_server.py
+```
+
+The server runs by default on `http://127.0.0.1:8000`. You can inspect the interactive API documentation at `http://127.0.0.1:8000/docs`.
+
+### Google Colab Execution
+
+To run the pipeline inside a Google Colab notebook:
+
+```bash
+# Sync dependencies in Colab
+!pip install uv
+!uv sync
+
+# Run the Colab entrypoint
+!uv run python scripts/colab_run_separation.py "https://www.youtube.com/watch?v=dQw4w9WgXcQ" -o "/content/drive/MyDrive/KaraokeOutputs"
+```
+
+## Project Structure
+
+Refer to [docs/architecture.md](docs/architecture.md) for a detailed breakdown of modules.
+
+## Known Limitations
+
+- CPU execution of Demucs on a standard laptop can be slow (5-15 minutes per song).
+- Requires system `ffmpeg` for normalization and MP3 export.
