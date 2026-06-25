@@ -1,4 +1,5 @@
 import sys
+import re
 import subprocess
 import logging
 from typing import List, Optional
@@ -14,6 +15,37 @@ class ProcessError(Exception):
         self.stderr = stderr
         super().__init__(f"Command '{' '.join(command)}' failed with exit status {returncode}.\nStderr: {stderr}")
 
+def format_progress_line(line: str) -> str:
+    """
+    Rounds long floats to 2 decimal places and shortens progress bars to length 20.
+    """
+    # 1. Round any floats with 3 or more decimal places
+    def round_float(match):
+        val = float(match.group(0))
+        return f"{val:.2f}"
+    
+    line = re.sub(r"\d+\.\d{3,}", round_float, line)
+    
+    # 2. Shorten the progress bar inside the pipes |...|
+    bar_match = re.search(r"(\|)([^|]{20,})(\|)", line)
+    if bar_match:
+        prefix = bar_match.group(1)
+        bar_content = bar_match.group(2)
+        suffix = bar_match.group(3)
+        
+        total_len = len(bar_content)
+        non_spaces = [c for c in bar_content if c != ' ']
+        
+        progress_ratio = len(non_spaces) / total_len if total_len > 0 else 0
+        
+        short_len = 20
+        filled_len = int(round(progress_ratio * short_len))
+        new_bar = "█" * filled_len + " " * (short_len - filled_len)
+        
+        line = line.replace(bar_match.group(0), f"|{new_bar}|")
+        
+    return line
+
 def execute_command(cmd: List[str], cwd: Optional[str] = None) -> subprocess.CompletedProcess:
     """
     Executes a system command as a subprocess, streams stdout/stderr to the console
@@ -26,30 +58,38 @@ def execute_command(cmd: List[str], cwd: Optional[str] = None) -> subprocess.Com
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1,
             cwd=cwd
         )
         
-        output_buffer = []
-        char_buffer = []
+        output_bytes = []
+        line_bytes = []
         
+        def flush_line(b_list):
+            if not b_list:
+                return
+            raw_line = b"".join(b_list)
+            output_bytes.append(raw_line)
+            try:
+                line_str = raw_line.decode("utf-8")
+                formatted_str = format_progress_line(line_str)
+                sys.stdout.buffer.write(formatted_str.encode("utf-8"))
+            except Exception:
+                sys.stdout.buffer.write(raw_line)
+            sys.stdout.buffer.flush()
+            
         while True:
-            char = process.stdout.read(1)
-            if not char:
+            char_bytes = process.stdout.read(1)
+            if not char_bytes:
+                flush_line(line_bytes)
                 break
             
-            # Print in real-time to standard output
-            sys.stdout.write(char)
-            sys.stdout.flush()
-            char_buffer.append(char)
+            line_bytes.append(char_bytes)
+            if char_bytes == b'\n' or char_bytes == b'\r':
+                flush_line(line_bytes)
+                line_bytes = []
             
-            if len(char_buffer) >= 1024:
-                output_buffer.append("".join(char_buffer))
-                char_buffer = []
-                
-        output_buffer.append("".join(char_buffer))
-        full_output = "".join(output_buffer)
+        full_output_bytes = b"".join(output_bytes)
+        full_output = full_output_bytes.decode("utf-8", errors="replace")
         
         returncode = process.wait()
         
