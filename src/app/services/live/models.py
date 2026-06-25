@@ -16,6 +16,7 @@ class LiveChunkStatus(str, Enum):
 class LiveOptions(BaseModel):
     youtube_url: str
     chunk_duration: float = 30.0
+    overlap: float = 0.0
     model_name: Optional[str] = None
     output_format: Optional[str] = None
     max_chunks: Optional[int] = None
@@ -25,6 +26,10 @@ class LiveOptions(BaseModel):
     def validate_durations(self) -> 'LiveOptions':
         if self.chunk_duration <= 0:
             raise ValueError("chunk_duration must be greater than zero")
+        if self.overlap < 0:
+            raise ValueError("overlap must be greater than or equal to zero")
+        if self.overlap >= self.chunk_duration:
+            raise ValueError("overlap must be smaller than chunk_duration")
         if self.max_chunks is not None and self.max_chunks <= 0:
             raise ValueError("max_chunks must be greater than zero")
         return self
@@ -47,6 +52,7 @@ class LiveManifest(BaseModel):
     video_duration: Optional[float] = None
     status: LiveStreamStatus
     chunk_duration: float
+    overlap: float = 0.0
     model_name: str
     output_format: str
     max_chunks: Optional[int] = None

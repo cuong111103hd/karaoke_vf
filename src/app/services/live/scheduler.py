@@ -10,6 +10,7 @@ def calculate_next_chunk(
     Returns None if we have reached the end of the source audio.
     """
     chunk_duration = manifest.chunk_duration
+    step = chunk_duration - manifest.overlap
     next_index = 0
     
     if manifest.chunks:
@@ -24,7 +25,7 @@ def calculate_next_chunk(
         else:
             next_index = max_idx
             
-    start = next_index * chunk_duration
+    start = next_index * step
     if start >= source_duration:
         return None
         

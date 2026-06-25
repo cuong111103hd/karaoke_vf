@@ -16,6 +16,7 @@ def test_live_manifest_atomic_write_read(tmp_path) -> None:
         youtube_url="https://youtube.com/watch?v=123",
         status=LiveStreamStatus.ACTIVE,
         chunk_duration=30.0,
+        overlap=1.0,
         model_name="htdemucs",
         output_format="wav"
     )
@@ -29,3 +30,4 @@ def test_live_manifest_atomic_write_read(tmp_path) -> None:
     assert loaded.youtube_url == "https://youtube.com/watch?v=123"
     assert loaded.status == LiveStreamStatus.ACTIVE
     assert loaded.chunk_duration == 30.0
+    assert loaded.overlap == 1.0

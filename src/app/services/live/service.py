@@ -51,6 +51,7 @@ def run_live_separation(options: LiveOptions, job_id: Optional[str] = None) -> L
         youtube_url=options.youtube_url,
         status=LiveStreamStatus.ACTIVE,
         chunk_duration=options.chunk_duration,
+        overlap=options.overlap,
         model_name=model_name,
         output_format=output_format,
         max_chunks=options.max_chunks,

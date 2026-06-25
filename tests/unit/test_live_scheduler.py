@@ -63,3 +63,28 @@ def test_calculate_next_chunk_sequential() -> None:
     ))
     next_window = calculate_next_chunk(manifest, source_duration=60.05)
     assert next_window is None
+
+def test_calculate_next_chunk_with_overlap() -> None:
+    manifest = LiveManifest(
+        job_id="test-job-overlap",
+        youtube_url="https://youtube.com",
+        status=LiveStreamStatus.ACTIVE,
+        chunk_duration=10.0,
+        overlap=1.0,
+        model_name="htdemucs",
+        output_format="wav"
+    )
+    
+    next_window = calculate_next_chunk(manifest, source_duration=30.0)
+    assert next_window == (0, 0.0, 10.0)
+    
+    manifest.chunks.append(LiveChunkMetadata(
+        index=0,
+        status=LiveChunkStatus.READY,
+        start_seconds=0.0,
+        end_seconds=10.0,
+        source_path="source_000.wav"
+    ))
+    
+    next_window = calculate_next_chunk(manifest, source_duration=30.0)
+    assert next_window == (1, 9.0, 19.0)

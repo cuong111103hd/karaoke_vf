@@ -18,6 +18,7 @@ def main() -> None:
     parser.add_argument("-o", "--output-dir", help="Output directory path")
     parser.add_argument("-j", "--job-id", help="Explicit Job ID to use")
     parser.add_argument("-c", "--chunk-duration", type=float, default=30.0, help="Chunk duration in seconds (default: 30.0)")
+    parser.add_argument("-ov", "--overlap", type=float, default=0.0, help="Overlap duration in seconds (default: 0.0)")
     parser.add_argument("-m", "--model", help=f"Demucs model name (default: {settings.DEMUCS_MODEL_NAME})")
     parser.add_argument("-f", "--format", help=f"Output format: wav, mp3, etc. (default: {settings.OUTPUT_FORMAT})")
     parser.add_argument("--max-chunks", type=int, help="Max chunks to process for debugging")
@@ -37,6 +38,7 @@ def main() -> None:
     options = LiveOptions(
         youtube_url=args.url,
         chunk_duration=args.chunk_duration,
+        overlap=args.overlap,
         model_name=args.model,
         output_format=args.format,
         max_chunks=args.max_chunks,
