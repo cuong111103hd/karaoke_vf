@@ -33,3 +33,11 @@ This layer provides orchestration and a HTTP API around the pipeline. It:
 - Stores metadata using a local JSON repository.
 - Dispatches long-running pipeline execution to a background worker.
 - Exposes endpoints to retrieve status and serve the completed output files.
+
+### 3. Simulated Progressive Separation Experiment (`src/app/audio/chunking.py`, `src/app/audio/concat.py`, `src/app/services/progressive_separation_service.py`)
+This experimental layer is built to test streaming feasibility:
+- It plans overlapping chunk windows for the audio source.
+- It trims the source using `ffmpeg` and separates each chunk independently via `demucs`.
+- It stitches the resulting instrumental chunks back together using the `acrossfade` filter in `ffmpeg` to produce a listening preview.
+- It computes timings and speed metrics using `src/app/utils/benchmark.py` and records them in a JSON manifest.
+- This layer has no dependencies on FastAPI or server databases, allowing it to remain fully portable.

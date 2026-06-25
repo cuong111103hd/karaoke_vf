@@ -50,6 +50,24 @@ Options:
 - `-f`, `--format`: Output format: wav, mp3, etc. (default: `wav`)
 - `-v`, `--verbose`: Enable verbose logging
 
+### Simulated Progressive Separation (Experimental)
+
+Run the simulated progressive separation experiment on overlapping chunks:
+
+```bash
+uv run python scripts/run_progressive_separation.py -u "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+```
+
+Options:
+- `-u`, `--url`: YouTube URL to separate
+- `-l`, `--local`: Path to a local audio file for faster local testing (e.g., `-l raw_source.wav`)
+- `-o`, `--output-dir`: Output directory for results
+- `-c`, `--chunk-duration`: Chunk window length in seconds (default: `30.0`)
+- `-ov`, `--overlap`: Overlap duration in seconds (default: `5.0`)
+- `-m`, `--model`: Demucs model name (default: `htdemucs`)
+- `-f`, `--format`: Output format (default: `wav`)
+- `--compare`: Simultaneously run standard full-song batch separation for A/B comparison
+
 ### Running the API Server
 
 Start the local FastAPI development server:

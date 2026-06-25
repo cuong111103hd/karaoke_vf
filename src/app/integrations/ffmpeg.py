@@ -27,3 +27,20 @@ def convert_audio(input_path: Path, output_path: Path, sample_rate: int = 44100,
         execute_command(cmd)
     except ProcessError as e:
         raise NormalizationError(f"ffmpeg conversion failed: {e.stderr}", original_error=e)
+
+def get_audio_duration(path: Path) -> float:
+    """
+    Retrieves the duration of an audio file in seconds using ffprobe.
+    """
+    cmd = [
+        "ffprobe",
+        "-v", "error",
+        "-show_entries", "format=duration",
+        "-of", "default=noprint_wrappers=1:nokey=1",
+        str(path)
+    ]
+    try:
+        res = execute_command(cmd)
+        return float(res.stdout.strip())
+    except Exception as e:
+        raise NormalizationError(f"Failed to read audio duration using ffprobe: {e}", original_error=e)

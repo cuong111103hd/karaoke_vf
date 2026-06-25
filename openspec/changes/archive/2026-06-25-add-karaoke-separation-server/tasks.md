@@ -65,7 +65,6 @@ app/
 │   │   ├── test_settings.py          # create
 │   │   ├── test_storage_paths.py     # create
 │   │   ├── test_demucs_command.py    # create
-│   │   ├── test_separation_service.py # create
 │   │   └── test_job_repository.py    # create
 │   └── integration/
 │       ├── test_separation_dry_run.py # create: mocked youtube/demucs flow

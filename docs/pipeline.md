@@ -28,3 +28,13 @@ This isolates the audio into two separate tracks: `vocals.wav` and `no_vocals.wa
 
 ### 4. Export
 Discovers the output tracks inside Demucs' directory structure and exports them to the job directory. If the user configured an output format other than `wav` (e.g. `mp3`), `ffmpeg` is called to transcode the WAV stems into the requested target format.
+
+## Separation Modes Comparison
+
+The project separates audio processing behaviors into different modes to evaluate latency and separation quality trade-offs:
+
+| Mode | Input Handling | Processing Unit | output files | Purpose |
+| --- | --- | --- | --- | --- |
+| **Full-Song Batch** | Full download | Full audio track | Full `instrumental` and `vocals` stems | High-quality baseline, used for standard server jobs. |
+| **Simulated Progressive** | Full download/local file | Overlapping chunk windows (e.g. 30s) | Multiple chunk files, a joined preview, and timing manifest | Feasibility study for chunked processing quality and speed. |
+| **True Streaming (Roadmap)** | Progressive stream buffer | Rolling chunk window / sliding overlap | Real-time audio stream output (HLS/WebSockets) | Target mode for low-latency streaming karaoke player. |

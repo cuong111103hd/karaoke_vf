@@ -38,3 +38,35 @@ def ensure_job_workspace(job_id: str) -> None:
     job_dir.mkdir(parents=True, exist_ok=True)
     downloads_dir.mkdir(parents=True, exist_ok=True)
     demucs_dir.mkdir(parents=True, exist_ok=True)
+
+def get_progressive_dir(job_id: str) -> Path:
+    """Get the root directory for progressive separation run."""
+    return get_job_dir(job_id) / "progressive"
+
+def get_chunks_dir(job_id: str) -> Path:
+    """Get the source chunks directory."""
+    return get_progressive_dir(job_id) / "chunks"
+
+def get_demucs_chunks_dir(job_id: str) -> Path:
+    """Get the Demucs output chunks directory."""
+    return get_progressive_dir(job_id) / "demucs_chunks"
+
+def get_instrumental_chunks_dir(job_id: str) -> Path:
+    """Get the extracted instrumental chunks directory."""
+    return get_progressive_dir(job_id) / "instrumental_chunks"
+
+def get_progressive_preview_path(job_id: str) -> Path:
+    """Get the stitched preview audio path."""
+    return get_progressive_dir(job_id) / "progressive_preview.wav"
+
+def get_progressive_manifest_path(job_id: str) -> Path:
+    """Get the manifest JSON path."""
+    return get_progressive_dir(job_id) / "manifest.json"
+
+def ensure_progressive_workspace(job_id: str) -> None:
+    """Create all directories needed for progressive separation."""
+    ensure_job_workspace(job_id)
+    get_progressive_dir(job_id).mkdir(parents=True, exist_ok=True)
+    get_chunks_dir(job_id).mkdir(parents=True, exist_ok=True)
+    get_demucs_chunks_dir(job_id).mkdir(parents=True, exist_ok=True)
+    get_instrumental_chunks_dir(job_id).mkdir(parents=True, exist_ok=True)

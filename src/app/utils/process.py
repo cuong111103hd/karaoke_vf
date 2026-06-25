@@ -100,5 +100,7 @@ def execute_command(cmd: List[str], cwd: Optional[str] = None) -> subprocess.Com
         
     except FileNotFoundError as e:
         raise ProcessError(cmd, -1, "", f"Executable not found: {str(e)}")
+    except ProcessError:
+        raise
     except Exception as e:
         raise ProcessError(cmd, -1, "", f"Failed to run command: {str(e)}")
