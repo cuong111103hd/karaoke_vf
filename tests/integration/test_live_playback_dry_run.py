@@ -38,6 +38,7 @@ def test_live_playback_dry_run(tmp_path, monkeypatch) -> None:
     
     options = PlaybackOptions(
         manifest_path=str(manifest_path),
+        mode="legacy",
         poll_interval=0.01,
         idle_timeout=1.0
     )

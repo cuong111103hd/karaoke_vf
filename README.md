@@ -117,7 +117,9 @@ Options for `play_live_chunks.py`:
 - `manifest`: Path to the manifest JSON file (required)
 - `-p`, `--poll-interval`: Interval in seconds to poll manifest (default: `1.0`)
 - `-t`, `--timeout`: Idle timeout in seconds before exiting (default: `60.0`)
-- `--player-cmd`: Override default `ffplay` command prefix (e.g. `aplay` or `ffplay -nodisp`)
+- `--player-cmd`: Override default `ffplay` command prefix (only applicable in `legacy` mode)
+- `--mode`: Playback mode: `continuous` (persistent Python output stream) or `legacy` (ffplay subprocess per chunk) (default: `continuous`)
+- `--min-ready-chunks`: Minimum ready chunks required before starting playback (default: `1`)
 
 ### Running the API Server
 

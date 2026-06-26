@@ -45,6 +45,6 @@ This experimental layer is built to test streaming feasibility:
 ### 4. Core Live Separation Layer (`src/app/services/live/`, `src/app/services/playback/`)
 This experimental layer is built to prove the live producer-consumer loop:
 - **Live Separation Producer (`src/app/services/live/`)**: Accepts a YouTube URL, downloads/normalizes the audio, plans sequential chunks, extracts source chunks, runs Demucs on each chunk, publishes the instrumental chunk, and atomically updates `live_manifest.json` at every step. It logs a ready signal when the first chunk (chunk 0) is ready to play.
-- **Playback Consumer (`src/app/services/playback/`)**: A separate process that watches `live_manifest.json` for ready chunks and plays them in order using the local player wrapper (`ffplay` subprocess).
+- **Playback Consumer (`src/app/services/playback/`)**: A submodule that manages the persistent Python audio output stream (`continuous_player.py`), sequential chunk buffering queue (`audio_queue.py`), format-validated WAV chunk loading (`chunk_loader.py`), overlap crossfading (`crossfade.py`), and the legacy fallback player wrapper (`player.py`).
 - Both components communicate solely through the local file system using the atomic manifest as the contract, keeping the system fully portable and free of API server/WebSocket/HLS dependencies.
 

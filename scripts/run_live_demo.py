@@ -13,6 +13,8 @@ def main() -> None:
     parser.add_argument("--max-chunks", type=int, help="Max chunks to process for debugging")
     parser.add_argument("-m", "--model", help="Demucs model name")
     parser.add_argument("-f", "--format", default="wav", help="Output format")
+    parser.add_argument("--mode", choices=["continuous", "legacy"], default="continuous", help="Playback mode (default: continuous)")
+    parser.add_argument("--min-ready-chunks", type=int, default=1, help="Minimum ready chunks required before starting playback (default: 1)")
     
     args = parser.parse_args()
     
@@ -36,7 +38,9 @@ def main() -> None:
         str(Path(__file__).resolve().parent / "play_live_chunks.py"),
         manifest_path_str,
         "-p", "1.0",
-        "-t", "120.0"  # 120s timeout to allow download + chunk 0 separation
+        "-t", "120.0",  # 120s timeout to allow download + chunk 0 separation
+        "--mode", args.mode,
+        "--min-ready-chunks", str(args.min_ready_chunks)
     ]
     
     print("Starting playback consumer in the background (waiting for first chunk)...")
@@ -69,6 +73,10 @@ def main() -> None:
         # Wait for the playback process to finish playing all ready chunks
         print("\nTách nhạc hoàn tất! Chờ trình phát nhạc chạy nốt các chunk còn lại...")
         playback_process.wait()
+        if playback_process.returncode != 0:
+            stdout, stderr = playback_process.communicate()
+            print("\n[LỖI] Trình phát nhạc bị lỗi khi chạy ngầm:")
+            print(stderr)
     except KeyboardInterrupt:
         print("\nStopping demo...")
     finally:

@@ -87,6 +87,25 @@ The `live_manifest.json` file contains:
 
 ---
 
-## Known Limitations
-* **Audio Clicks**: Since chunks are played back-to-back without overlap crossfading, slight clicks may be heard at chunk boundaries. This is expected for this core validation layer and will be resolved when transitioning to the streaming HLS layer.
-* **ffplay Prerequisite**: Playback requires `ffplay` to be installed on your system. If `ffplay` is not present, the playback script will abort with a clear error instruction.
+## Continuous Playback & Overlap Handling
+
+By default, the playback consumer runs in `continuous` mode. Instead of spawning an external `ffplay` process per chunk, it uses a single persistent Python audio stream (`sounddevice`) to play audio seamlessly.
+
+### Parameters
+* **`--mode`**: Selects the player implementation.
+  * `continuous`: (Default) Plays audio through a single persistent `sounddevice` stream. Stitches overlap in memory with a linear crossfade.
+  * `legacy`: Plays each chunk individually using an external `ffplay` process.
+* **`--min-ready-chunks`**: The startup buffer size. Defaults to `1`.
+  * If set to `1`, playback starts immediately when the first chunk (chunk 0) is ready.
+  * If set to a higher value, playback will wait until that many chunks are ready before starting.
+
+### Overlap Handling & Crossfading
+* The player reads the `overlap` setting from the manifest.
+* When playing sequentially with `overlap > 0` in `continuous` mode, the player trims the overlapping region and blends the adjacent chunks using a linear crossfade window. This eliminates clicks or repeated audio at chunk boundaries.
+* If a subsequent chunk is not ready in time, the player will pause until the next chunk becomes available.
+
+---
+
+## Prerequisites & Limitations
+* **Audio Output backend**: `continuous` mode requires `sounddevice` and system audio libraries (like `libportaudio2` on Linux). If these are not available, the script will log an error.
+* **ffplay Fallback**: If the Python audio backend is not available, you can fall back to the legacy player using `--mode legacy`, which requires `ffplay` in the system path.
