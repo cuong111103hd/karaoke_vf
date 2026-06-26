@@ -90,7 +90,20 @@ Once completed, check the directory `data/jobs/<job_id>/progressive/` where you 
 
 ### Live Separation Core (Experimental)
 
-The core live separation feature runs a two-terminal workflow using a local file-system manifest (`live_manifest.json`) as the contract between the producer and the playback consumer:
+The core live separation feature can run as a one-command demo or as a two-terminal workflow using a local file-system manifest (`live_manifest.json`) as the contract between the producer and the playback consumer:
+
+Quick continuous playback demo:
+
+```bash
+uv run python scripts/run_live_demo.py \
+  -u "https://www.youtube.com/watch?v=dQw4w9WgXcQ" \
+  -c 10.0 \
+  -ov 1.0 \
+  --max-chunks 3 \
+  --mode continuous
+```
+
+`--mode continuous` is the default and keeps one Python audio stream open. `--mode legacy` uses `ffplay` once per chunk, so gaps between chunks are expected in legacy mode.
 
 1. **Terminal 1: Start the Producer**:
    Downloads the YouTube video and sequentially processes chunks as they become available:

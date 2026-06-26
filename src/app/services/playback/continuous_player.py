@@ -14,6 +14,7 @@ except (ImportError, OSError) as e:
 
 from app.services.playback.audio_queue import AudioQueue
 from app.services.playback.chunk_loader import load_wav_chunk
+from app.services.playback.crossfade import crossfade_chunks
 from app.services.live.manifest import read_live_manifest
 
 logger = logging.getLogger(__name__)
@@ -93,27 +94,11 @@ class ContinuousPlayer:
                 # Stitch with pending tail
                 if self.overlap_samples > 0:
                     if self.pending_tail is not None:
-                        # Crossfade pending tail with the head of the current chunk
-                        actual_overlap = min(self.overlap_samples, len(self.pending_tail), len(data))
-                        if actual_overlap > 0:
-                            prev_overlap = self.pending_tail[-actual_overlap:]
-                            next_overlap = data[:actual_overlap]
-
-                            # Generate fade curves
-                            fade_out = np.linspace(1.0, 0.0, actual_overlap, dtype=np.float32)
-                            fade_in = np.linspace(0.0, 1.0, actual_overlap, dtype=np.float32)
-
-                            if prev_overlap.ndim == 2:
-                                fade_out = fade_out[:, np.newaxis]
-                                fade_in = fade_in[:, np.newaxis]
-
-                            blended = prev_overlap * fade_out + next_overlap * fade_in
-                            self.stream.write(blended)
-
-                            # What remains of current chunk to play or buffer
-                            remaining_data = data[actual_overlap:]
-                        else:
-                            remaining_data = data
+                        remaining_data = crossfade_chunks(
+                            self.pending_tail,
+                            data,
+                            self.overlap_samples,
+                        )
                     else:
                         remaining_data = data
 

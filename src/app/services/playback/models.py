@@ -1,12 +1,12 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Literal, Optional, List
 
 class PlaybackOptions(BaseModel):
     manifest_path: str
     poll_interval: float = 1.0
     idle_timeout: float = 60.0
     player_cmd_override: Optional[str] = None
-    mode: str = "continuous"
+    mode: Literal["continuous", "legacy"] = "continuous"
     min_ready_chunks: int = 1
 
 class PlaybackState(BaseModel):

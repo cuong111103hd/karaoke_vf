@@ -47,7 +47,7 @@ def run_playback(options: PlaybackOptions) -> PlaybackState:
                     job_id = manifest.job_id
                 except Exception:
                     pass
-        else:
+        elif options.mode == "legacy":
             # Legacy mode
             watcher = ManifestWatcher(manifest_path, options.poll_interval, options.idle_timeout)
             for chunk in watcher.watch():
@@ -62,8 +62,10 @@ def run_playback(options: PlaybackOptions) -> PlaybackState:
                 
                 if chunk.instrumental_path:
                     play_chunk(Path(chunk.instrumental_path), options.player_cmd_override)
-                    
+                        
                 played_indices.append(chunk.index)
+        else:
+            raise ValueError(f"Unsupported playback mode: {options.mode}")
         
         status = "completed"
     except Exception as e:

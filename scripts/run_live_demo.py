@@ -45,10 +45,7 @@ def main() -> None:
     
     print("Starting playback consumer in the background (waiting for first chunk)...")
     playback_process = subprocess.Popen(
-        playback_args,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
+        playback_args
     )
     
     # 4. Start Producer Process in the foreground
@@ -74,9 +71,8 @@ def main() -> None:
         print("\nTách nhạc hoàn tất! Chờ trình phát nhạc chạy nốt các chunk còn lại...")
         playback_process.wait()
         if playback_process.returncode != 0:
-            stdout, stderr = playback_process.communicate()
             print("\n[LỖI] Trình phát nhạc bị lỗi khi chạy ngầm:")
-            print(stderr)
+            print(f"Playback process exited with code {playback_process.returncode}.")
     except KeyboardInterrupt:
         print("\nStopping demo...")
     finally:

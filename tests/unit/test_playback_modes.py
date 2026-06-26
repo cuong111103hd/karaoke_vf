@@ -2,6 +2,7 @@ import pytest
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+from pydantic import ValidationError
 
 # Add src folder to sys.path to resolve imports correctly
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "src"))
@@ -77,3 +78,12 @@ def test_run_playback_legacy_routing(tmp_path) -> None:
         assert state.played_chunk_count == 1
         assert state.played_chunk_indices == [0]
         assert state.job_id == "job-abc"
+
+def test_playback_options_rejects_unknown_mode(tmp_path) -> None:
+    manifest_path = tmp_path / "live_manifest.json"
+
+    with pytest.raises(ValidationError):
+        PlaybackOptions(
+            manifest_path=str(manifest_path),
+            mode="continous",
+        )
