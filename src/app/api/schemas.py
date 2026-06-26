@@ -18,6 +18,7 @@ class LiveChunkResponse(BaseModel):
     start_seconds: float
     end_seconds: float
     instrumental_path: Optional[str] = None
+    instrumental_url: Optional[str] = None
     processing_seconds: Optional[float] = None
     error_message: Optional[str] = None
 

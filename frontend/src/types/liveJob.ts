@@ -4,6 +4,7 @@ export interface LiveChunk {
   start_seconds: number;
   end_seconds: number;
   instrumental_path?: string;
+  instrumental_url?: string;
   processing_seconds?: number;
   error_message?: string;
 }

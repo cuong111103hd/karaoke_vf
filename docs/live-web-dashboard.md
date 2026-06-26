@@ -65,5 +65,7 @@ npm run dev
 
 ---
 
-## Phase 2 Playback Plan
-Phase 2 will introduce client-side audio stitching using the WebAudio API or HLS streaming so that isolated instrumental stems can be listened to directly inside the web browser as they are generated. Phase 1 focuses entirely on providing a robust control plane and monitoring dashboard for developers.
+## Phase 2 Playback Integration
+Phase 2 introduces client-side audio stitching using the WebAudio API. Isolated instrumental stems can be listened to directly inside the web browser as they are generated. 
+
+For technical details, scheduling math, and user interaction requirements, refer to the [Live Web Playback Guide](file:///home/cuong/Desktop/python/VinFast/karaoke_vf/docs/live-web-playback.md).

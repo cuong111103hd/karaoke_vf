@@ -1,5 +1,7 @@
 from fastapi import APIRouter, BackgroundTasks, HTTPException, status
+from fastapi.responses import FileResponse
 from typing import List
+from pathlib import Path
 
 from app.api.schemas import LiveJobCreateRequest, LiveJobResponse
 from app.jobs import live_job_manager
@@ -23,3 +25,36 @@ def get_live_job(job_id: str) -> LiveJobResponse:
     if not job:
         raise HTTPException(status_code=404, detail=f"Live job {job_id} not found.")
     return job
+
+@router.get("/{job_id}/chunks/{index}/instrumental")
+def get_chunk_instrumental(job_id: str, index: int) -> FileResponse:
+    """
+    Downloads the ready instrumental audio file for a specific live job chunk.
+    """
+    # 1. Fetch job
+    job = live_job_manager.get_live_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail=f"Live job {job_id} not found.")
+        
+    # 2. Check if chunk exists in job
+    chunk = next((c for c in job.chunks if c.index == index), None)
+    if not chunk:
+        raise HTTPException(status_code=404, detail=f"Chunk {index} not found in job {job_id}.")
+        
+    # 3. Check if chunk is ready
+    if chunk.status != "ready":
+        raise HTTPException(status_code=400, detail=f"Chunk {index} is not ready yet (status: {chunk.status}).")
+        
+    # 4. Check if instrumental path is set
+    if not chunk.instrumental_path:
+        raise HTTPException(status_code=500, detail=f"Instrumental path for chunk {index} is missing.")
+        
+    # 5. Check if file exists on disk
+    file_path = Path(chunk.instrumental_path)
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail=f"Instrumental file not found for chunk {index} at {file_path}.")
+        
+    # Determine media type based on file extension
+    media_type = "audio/wav" if file_path.suffix.lower() == ".wav" else "audio/mpeg"
+    
+    return FileResponse(path=file_path, media_type=media_type, filename=file_path.name)

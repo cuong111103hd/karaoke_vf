@@ -9,7 +9,7 @@ from app.api.schemas import LiveJobCreateRequest, LiveJobResponse, LiveChunkResp
 from app.jobs.live_models import LiveJobRecord
 from app.services.live.manifest import read_live_manifest
 from app.services.live.service import run_live_separation
-from app.services.live.models import LiveOptions
+from app.services.live.models import LiveOptions, LiveChunkStatus
 from app.storage.paths import get_live_manifest_path
 
 logger = logging.getLogger(__name__)
@@ -87,6 +87,7 @@ class LiveJobManager:
                         start_seconds=c.start_seconds,
                         end_seconds=c.end_seconds,
                         instrumental_path=c.instrumental_path,
+                        instrumental_url=f"/api/live-jobs/{job_id}/chunks/{c.index}/instrumental" if c.status == LiveChunkStatus.READY and c.instrumental_path else None,
                         processing_seconds=c.processing_seconds,
                         error_message=c.error_message
                     )

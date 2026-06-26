@@ -3,6 +3,7 @@ import type { LiveJob } from './types/liveJob';
 import { createLiveJob, getLiveJob, listLiveJobs } from './api/liveJobsApi';
 import { LiveJobForm } from './components/LiveJobForm';
 import { LiveJobStatus } from './components/LiveJobStatus';
+import { LivePlaybackPanel } from './components/LivePlaybackPanel';
 import { ChunkTimeline } from './components/ChunkTimeline';
 import { LiveJobList } from './components/LiveJobList';
 import './styles/app.css';
@@ -136,6 +137,7 @@ function App() {
           {selectedJob ? (
             <>
               <LiveJobStatus job={selectedJob} lastUpdated={lastUpdated} />
+              <LivePlaybackPanel job={selectedJob} />
               <ChunkTimeline chunks={selectedJob.chunks} />
             </>
           ) : (

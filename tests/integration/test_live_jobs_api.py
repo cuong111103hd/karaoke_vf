@@ -31,6 +31,9 @@ def test_live_jobs_api_endpoints(tmp_path, monkeypatch) -> None:
     app = create_app()
     client = TestClient(app)
     
+    from app.jobs import live_job_manager
+    live_job_manager._jobs.clear()
+    
     # Mock run_live_separation to prevent calling external processes
     with patch("app.jobs.live_manager.run_live_separation") as mock_sep:
         # 1. Create Live Job

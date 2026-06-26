@@ -136,7 +136,7 @@ Options for `play_live_chunks.py`:
 
 ### Running the API Server & Frontend Dashboard
 
-You can run the API server alongside the React frontend dashboard to start and monitor live separation sessions in a web browser.
+You can run the API server alongside the React frontend dashboard to start, monitor, and play live separation sessions in a web browser.
 
 1. **Start the FastAPI Server**:
    ```bash
@@ -152,6 +152,12 @@ You can run the API server alongside the React frontend dashboard to start and m
    npm run dev
    ```
    Open `http://localhost:5173` in your browser to access the dashboard.
+
+3. **Continuous Browser Playback (WebAudio)**:
+   - Select an active/completed live job session in the dashboard.
+   - Click **Start Playback** to initialize the browser's WebAudio context.
+   - Ready chunks are fetched, decoded, and played in sequence. Overlapping segments are crossfaded automatically to ensure gapless transitions.
+   - *Note: Autoplay restrictions require an explicit play gesture to start audio. Streaming protocols like HLS, WebSockets, or SSE are intentionally out of scope for this browser playback implementation.*
 
 ### Google Colab Execution
 
