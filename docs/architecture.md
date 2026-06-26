@@ -48,3 +48,11 @@ This experimental layer is built to prove the live producer-consumer loop:
 - **Playback Consumer (`src/app/services/playback/`)**: A submodule that manages the persistent Python audio output stream (`continuous_player.py`), sequential chunk buffering queue (`audio_queue.py`), format-validated WAV chunk loading (`chunk_loader.py`), overlap crossfading (`crossfade.py`), and the legacy fallback player wrapper (`player.py`).
 - Both components communicate solely through the local file system using the atomic manifest as the contract, keeping the system fully portable and free of API server/WebSocket/HLS dependencies.
 
+### 5. Live Web Dashboard Layer (`src/app/api/routes/live_jobs.py`, `src/app/jobs/live_manager.py`, `frontend/`)
+This layer provides browser control and real-time observability of live separation sessions:
+- **Live Job API (`src/app/api/routes/live_jobs.py`)**: Exposes HTTP endpoints (`POST /api/live-jobs`, `GET /api/live-jobs/{job_id}`, `GET /api/live-jobs`) to create, list, and query live separation jobs.
+- **Live Job Manager (`src/app/jobs/live_manager.py`)**: Manages in-memory job records, launches the core `run_live_separation` producer inside FastAPI background tasks, and retrieves status from the filesystem manifest (`live_manifest.json`) when available.
+- **Vite React Frontend (`frontend/`)**: Displays the operational dashboard, which polls the API every 2 seconds to render a status panel and chunk progress timeline.
+- **Phase 1 Boundary**: This dashboard only monitors chunk status and does not support browser audio playback. Browser playback (WebAudio/HLS) is planned for Phase 2.
+
+

@@ -134,15 +134,24 @@ Options for `play_live_chunks.py`:
 - `--mode`: Playback mode: `continuous` (persistent Python output stream) or `legacy` (ffplay subprocess per chunk) (default: `continuous`)
 - `--min-ready-chunks`: Minimum ready chunks required before starting playback (default: `1`)
 
-### Running the API Server
+### Running the API Server & Frontend Dashboard
 
-Start the local FastAPI development server:
+You can run the API server alongside the React frontend dashboard to start and monitor live separation sessions in a web browser.
 
-```bash
-uv run python scripts/run_server.py
-```
+1. **Start the FastAPI Server**:
+   ```bash
+   uv run python scripts/run_server.py
+   ```
+   The API will run on `http://127.0.0.1:8000`. You can inspect endpoints via Swagger at `http://127.0.0.1:8000/docs`.
 
-The server runs by default on `http://127.0.0.1:8000`. You can inspect the interactive API documentation at `http://127.0.0.1:8000/docs`.
+2. **Start the Frontend Dev Server**:
+   In a second terminal, navigate to the `frontend/` directory and start Vite:
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+   Open `http://localhost:5173` in your browser to access the dashboard.
 
 ### Google Colab Execution
 
