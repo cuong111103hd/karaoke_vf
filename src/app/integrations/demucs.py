@@ -20,6 +20,7 @@ def run_demucs(input_path: Path, output_dir: Path, model_name: str = "htdemucs")
         "-m", "demucs",
         "-n", model_name,
         "--two-stems=vocals",
+        "--jobs", "1",
         "-o", str(output_dir),
         str(input_path)
     ]

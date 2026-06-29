@@ -1,0 +1,50 @@
+name: karaoke-vf
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: karaoke-vf-backend:local
+    init: true
+    environment:
+      DATA_DIR: /app/data
+      DEMUCS_MODEL_NAME: ${DEMUCS_MODEL_NAME:-htdemucs}
+      OUTPUT_FORMAT: ${OUTPUT_FORMAT:-wav}
+      HOST: 0.0.0.0
+      PORT: 8000
+      TORCH_HOME: /app/models/torch
+      # Keep native math libraries from creating a thread pool per CPU.
+      # With the default 4-CPU backend this leaves capacity for FastAPI/ffmpeg.
+      OMP_NUM_THREADS: ${INFERENCE_THREADS:-2}
+      MKL_NUM_THREADS: ${INFERENCE_THREADS:-2}
+      OPENBLAS_NUM_THREADS: ${INFERENCE_THREADS:-2}
+      NUMEXPR_NUM_THREADS: ${INFERENCE_THREADS:-2}
+    volumes:
+      - ./data:/app/data
+      - demucs-models:/app/models
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    cpus: ${BACKEND_CPUS:-8.0}
+    mem_limit: ${BACKEND_MEMORY:-5g}
+    memswap_limit: ${BACKEND_MEMORY:-5g}
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: karaoke-vf-frontend:local
+    init: true
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
+    cpus: ${FRONTEND_CPUS:-0.5}
+    mem_limit: ${FRONTEND_MEMORY:-256m}
+    memswap_limit: ${FRONTEND_MEMORY:-256m}
+    restart: unless-stopped
+
+volumes:
+  demucs-models:

@@ -1,6 +1,6 @@
 import type { LiveJob } from '../types/liveJob';
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = '/api';
 
 export async function createLiveJob(data: {
   youtube_url: string;

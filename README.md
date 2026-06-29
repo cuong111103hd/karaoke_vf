@@ -159,6 +159,45 @@ You can run the API server alongside the React frontend dashboard to start, moni
    - Ready chunks are fetched, decoded, and played in sequence. Overlapping segments are crossfaded automatically to ensure gapless transitions.
    - *Note: Autoplay restrictions require an explicit play gesture to start audio. Streaming protocols like HLS, WebSockets, or SSE are intentionally out of scope for this browser playback implementation.*
 
+### Running with Docker
+
+The Compose setup runs the API and frontend in separate containers while keeping all
+Demucs and ffmpeg child processes inside the backend resource boundary.
+
+1. Copy the example configuration and adjust CPU/RAM limits if needed:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Run on CPU:
+
+   ```bash
+   docker compose up --build
+   ```
+
+   To expose an NVIDIA GPU (requires the NVIDIA Container Toolkit):
+
+   ```bash
+   docker compose -f compose.yaml -f compose.gpu.yaml up --build
+   ```
+
+3. Open the dashboard at `http://localhost:5173` and the API documentation at
+   `http://localhost:8000/docs`.
+
+Inspect the isolated project resources with:
+
+```bash
+docker stats karaoke-vf-backend-1 karaoke-vf-frontend-1
+nvidia-smi
+```
+
+`BACKEND_CPUS` and `BACKEND_MEMORY` in `.env` are hard container limits. Swap is
+disabled for the backend by setting its memory-and-swap limit equal to its RAM limit,
+which makes performance tests more representative of real-time playback.
+`INFERENCE_THREADS` limits the native PyTorch/OpenMP/BLAS thread pools; it defaults
+to `2` so a 4-CPU backend retains capacity for FastAPI and ffmpeg.
+
 ### Google Colab Execution
 
 To run the pipeline inside a Google Colab notebook:

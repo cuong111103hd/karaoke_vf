@@ -25,6 +25,8 @@ def test_demucs_command_construction() -> None:
         assert "-n" in cmd
         assert cmd[cmd.index("-n") + 1] == model
         assert "--two-stems=vocals" in cmd
+        assert "--jobs" in cmd
+        assert cmd[cmd.index("--jobs") + 1] == "1"
         assert "-o" in cmd
         assert cmd[cmd.index("-o") + 1] == str(output_dir)
         assert cmd[-1] == str(input_path)
