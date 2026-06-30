@@ -1,5 +1,6 @@
 import sys
 import logging
+import time
 from pathlib import Path
 from app.utils.process import execute_command, ProcessError
 from app.services.errors import DemucsError
@@ -17,6 +18,15 @@ class DemucsEngine(Separator):
         """
         Runs Demucs CLI separation using sys.executable.
         """
+        stage_markers: dict[str, float] = {}
+
+        def observe_line(line: str, timestamp: float) -> None:
+            normalized = line.strip()
+            if normalized and "first_output_line_seconds" not in stage_markers:
+                stage_markers["first_output_line_seconds"] = timestamp
+            if "100%|" in normalized:
+                stage_markers["last_progress_complete_seconds"] = timestamp
+
         cmd = [
             sys.executable,
             "-m", "demucs",
@@ -28,8 +38,9 @@ class DemucsEngine(Separator):
         ]
         
         logger.debug(f"Executing Demucs command: {' '.join(cmd)}")
+        started_at = time.perf_counter()
         try:
-            execute_command(cmd)
+            execute_command(cmd, line_callback=observe_line)
         except ProcessError as e:
             raise DemucsError(
                 f"Demucs execution failed: {e.stderr}",
@@ -42,6 +53,7 @@ class DemucsEngine(Separator):
                 original_error=e,
                 model=self.model_name,
             )
+        finished_at = time.perf_counter()
 
         # Locate output files
         track_dir = output_dir / self.model_name / input_path.stem
@@ -63,8 +75,24 @@ class DemucsEngine(Separator):
                 model=self.model_name,
             )
 
+        first_output_at = stage_markers.get("first_output_line_seconds", started_at)
+        progress_done_at = stage_markers.get("last_progress_complete_seconds", finished_at)
+        profiling = {
+            "engine": self.engine_name,
+            "model": self.model_name,
+            "total_seconds": finished_at - started_at,
+            "subprocess_launch_seconds": max(0.0, first_output_at - started_at),
+            "audio_processing_seconds": max(0.0, progress_done_at - started_at),
+            "wav_finalize_seconds": max(0.0, finished_at - progress_done_at),
+            "markers": {
+                "first_output_line_seen": "first_output_line_seconds" in stage_markers,
+                "progress_completion_seen": "last_progress_complete_seconds" in stage_markers,
+            },
+        }
+
         # Returns validated SeparationOutput
         return SeparationOutput(
             instrumental_path=no_vocals,
-            vocals_path=vocals if vocals.exists() else None
+            vocals_path=vocals if vocals.exists() else None,
+            profiling=profiling,
         )

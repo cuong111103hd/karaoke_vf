@@ -1,8 +1,9 @@
 import sys
 import re
+import time
 import subprocess
 import logging
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,11 @@ def format_progress_line(line: str) -> str:
         
     return line
 
-def execute_command(cmd: List[str], cwd: Optional[str] = None) -> subprocess.CompletedProcess:
+def execute_command(
+    cmd: List[str],
+    cwd: Optional[str] = None,
+    line_callback: Optional[Callable[[str, float], None]] = None,
+) -> subprocess.CompletedProcess:
     """
     Executes a system command as a subprocess, streams stdout/stderr to the console
     in real-time (supporting carriage returns like tqdm progress bars), and captures
@@ -71,6 +76,8 @@ def execute_command(cmd: List[str], cwd: Optional[str] = None) -> subprocess.Com
             output_bytes.append(raw_line)
             try:
                 line_str = raw_line.decode("utf-8")
+                if line_callback is not None:
+                    line_callback(line_str, time.perf_counter())
                 formatted_str = format_progress_line(line_str)
                 sys.stdout.buffer.write(formatted_str.encode("utf-8"))
             except Exception:

@@ -278,6 +278,31 @@ def measure_call(function) -> tuple[Any, float, Dict[str, float]]:
     return result, elapsed, metrics
 
 
+def summarize_stage_timings(stage_profiles: List[Dict[str, Any]]) -> Dict[str, Any]:
+    if not stage_profiles:
+        return {}
+
+    numeric_keys = sorted(
+        {
+            key
+            for profile in stage_profiles
+            for key, value in profile.items()
+            if isinstance(value, (int, float))
+        }
+    )
+    summary: Dict[str, Any] = {}
+    for key in numeric_keys:
+        values = [float(profile[key]) for profile in stage_profiles if isinstance(profile.get(key), (int, float))]
+        if not values:
+            continue
+        summary[key] = {
+            "p50_seconds": calculate_percentile(values, 50),
+            "p95_seconds": calculate_percentile(values, 95),
+            "max_seconds": max(values),
+        }
+    return summary
+
+
 def create_engine(
     engine_name: str,
     model_name: str,
@@ -348,6 +373,7 @@ def run_benchmark_sequential_for_engine(
                 "success": True,
                 "elapsed_seconds": elapsed,
                 "rtf": elapsed / audio_duration,
+                "stage_profile": output.profiling or {},
                 **resources,
                 "instrumental_path": str(output.instrumental_path),
                 "vocals_path": str(output.vocals_path) if output.vocals_path else None,
@@ -381,6 +407,9 @@ def run_benchmark_sequential_for_engine(
         "p95_rtf": calculate_percentile(rtf_values, 95),
         "max_peak_tree_rss_mb": max(
             (run["peak_tree_rss_mb"] for run in successful), default=0.0
+        ),
+        "stage_breakdown": summarize_stage_timings(
+            [run["stage_profile"] for run in successful if run.get("stage_profile")]
         ),
     }
     return {
@@ -428,6 +457,7 @@ def run_benchmark_concurrency_for_engine(
         threads: List[threading.Thread] = []
         errors: List[Optional[str]] = [None] * concurrency
         thread_elapsed: List[float] = [0.0] * concurrency
+        stage_profiles: List[Optional[Dict[str, Any]]] = [None] * concurrency
         submitted_offsets: List[float] = [0.0] * concurrency
         started_offsets: List[float] = [0.0] * concurrency
         completed_offsets: List[float] = [0.0] * concurrency
@@ -441,7 +471,8 @@ def run_benchmark_concurrency_for_engine(
             t_start = time.perf_counter()
             started_offsets[t_index] = t_start - wall_start
             try:
-                engine_instance.separate(input_path, t_output_dir)
+                output = engine_instance.separate(input_path, t_output_dir)
+                stage_profiles[t_index] = output.profiling or {}
             except Exception as e:
                 errors[t_index] = str(e)
                 logger.error("Task %d failed: %s", t_index, e)
@@ -491,6 +522,7 @@ def run_benchmark_concurrency_for_engine(
                 "completed_offset_seconds": completed_offsets[i],
                 "run_duration_seconds": thread_elapsed[i],
                 "completion_latency_seconds": completed_offsets[i],
+                "stage_profile": stage_profiles[i] or {},
             }
             for i in range(concurrency)
         ]
@@ -515,6 +547,9 @@ def run_benchmark_concurrency_for_engine(
             "failed_runs": failed_runs,
             "model_initialization_seconds_avg": sum(init_times) / len(init_times) if init_times else 0.0,
             "job_timings": job_timings,
+            "stage_breakdown": summarize_stage_timings(
+                [profile for i, profile in enumerate(stage_profiles) if errors[i] is None and profile]
+            ),
             **resources
         }
 

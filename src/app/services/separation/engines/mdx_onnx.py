@@ -1,10 +1,30 @@
 import logging
 import threading
+import time
 from pathlib import Path
 from app.services.errors import SeparatorStageError
 from app.services.separation.contracts import Separator, SeparationOutput
 
 logger = logging.getLogger(__name__)
+
+
+class _StageLogCapture(logging.Handler):
+    def __init__(self, started_at: float):
+        super().__init__(level=logging.INFO)
+        self.started_at = started_at
+        self.markers: dict[str, float] = {}
+
+    def emit(self, record: logging.LogRecord) -> None:
+        message = record.getMessage()
+        offset = time.perf_counter() - self.started_at
+
+        if "Starting separation process for audio_file_path:" in message:
+            self.markers.setdefault("library_start_seconds", offset)
+        elif "Saving Vocals stem" in message or "Saving Instrumental stem" in message:
+            self.markers.setdefault("first_save_seconds", offset)
+        elif "Clearing input audio file paths, sources and stems" in message:
+            self.markers.setdefault("post_save_cleanup_seconds", offset)
+
 
 class MdxOnnxEngine(Separator):
     engine_name = "mdx_onnx"
@@ -108,7 +128,12 @@ class MdxOnnxEngine(Separator):
         Runs MDX ONNX separation on the input file and returns SeparationOutput.
         """
         # Ensure model is loaded (lazy loading)
+        load_started_at = time.perf_counter()
         self.load_model()
+        load_finished_at = time.perf_counter()
+        separate_started_at = time.perf_counter()
+        log_capture = _StageLogCapture(started_at=separate_started_at)
+        logging.getLogger().addHandler(log_capture)
         
         # Ensure only one separation runs at a time (prevent state/directory collisions)
         with self._lock:
@@ -131,6 +156,10 @@ class MdxOnnxEngine(Separator):
                     message=f"Separation failed: {str(e)}",
                     original_error=e
                 )
+            finally:
+                logging.getLogger().removeHandler(log_capture)
+
+        separate_finished_at = time.perf_counter()
 
         if not isinstance(output_files, (list, tuple)):
             raise SeparatorStageError(
@@ -159,7 +188,23 @@ class MdxOnnxEngine(Separator):
                 message=f"Separation succeeded but instrumental file was not found under {output_dir}. Returned files: {output_files}"
             )
 
+        library_start = log_capture.markers.get("library_start_seconds", 0.0)
+        save_start = log_capture.markers.get("first_save_seconds", separate_finished_at - separate_started_at)
+        cleanup_start = log_capture.markers.get("post_save_cleanup_seconds", separate_finished_at - separate_started_at)
+        profiling = {
+            "engine": self.engine_name,
+            "model": self.model_name,
+            "load_model_seconds": load_finished_at - load_started_at,
+            "total_seconds": separate_finished_at - separate_started_at,
+            "setup_seconds": max(0.0, library_start),
+            "audio_processing_seconds": max(0.0, save_start - library_start),
+            "wav_finalize_seconds": max(0.0, separate_finished_at - save_start),
+            "cleanup_seconds": max(0.0, separate_finished_at - cleanup_start),
+            "markers": log_capture.markers,
+        }
+
         return SeparationOutput(
             instrumental_path=instrumental_path,
-            vocals_path=vocals_path if vocals_path and vocals_path.exists() else None
+            vocals_path=vocals_path if vocals_path and vocals_path.exists() else None,
+            profiling=profiling,
         )

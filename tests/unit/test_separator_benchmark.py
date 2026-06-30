@@ -46,7 +46,14 @@ def test_benchmark_uses_normalized_output_contract(tmp_path, monkeypatch) -> Non
             output_dir.mkdir(parents=True, exist_ok=True)
             instrumental = output_dir / "instrumental.wav"
             instrumental.write_bytes(input_audio.read_bytes())
-            return SeparationOutput(instrumental_path=instrumental)
+            return SeparationOutput(
+                instrumental_path=instrumental,
+                profiling={
+                    "audio_processing_seconds": 0.01,
+                    "wav_finalize_seconds": 0.02,
+                    "total_seconds": 0.03,
+                },
+            )
 
     monkeypatch.setattr(benchmark, "create_engine", lambda *args, **kwargs: FakeEngine())
 
@@ -64,6 +71,7 @@ def test_benchmark_uses_normalized_output_contract(tmp_path, monkeypatch) -> Non
     assert result["summary"]["successful_runs"] == 2
     assert result["summary"]["failed_runs"] == 0
     assert all(run["instrumental_path"] for run in result["runs"])
+    assert result["summary"]["stage_breakdown"]["audio_processing_seconds"]["p50_seconds"] == 0.01
 
 
 def test_prepare_input_for_benchmark_trims_to_requested_chunk(tmp_path) -> None:
@@ -125,7 +133,14 @@ def test_concurrency_benchmark_reports_per_job_completion_timings(tmp_path, monk
             time.sleep(self.sleep_seconds)
             instrumental = output_dir / "instrumental.wav"
             instrumental.write_bytes(input_audio.read_bytes())
-            return SeparationOutput(instrumental_path=instrumental)
+            return SeparationOutput(
+                instrumental_path=instrumental,
+                profiling={
+                    "audio_processing_seconds": self.sleep_seconds,
+                    "wav_finalize_seconds": 0.01,
+                    "total_seconds": self.sleep_seconds + 0.01,
+                },
+            )
 
     monkeypatch.setattr(benchmark, "create_engine", lambda *args, **kwargs: FakeEngine())
 
@@ -146,3 +161,4 @@ def test_concurrency_benchmark_reports_per_job_completion_timings(tmp_path, monk
     assert level["first_result_seconds"] > 0
     assert level["p95_completion_latency_seconds"] >= level["first_result_seconds"]
     assert all(job["completion_latency_seconds"] > 0 for job in level["job_timings"])
+    assert level["stage_breakdown"]["audio_processing_seconds"]["p50_seconds"] == 0.02

@@ -1,10 +1,11 @@
-from typing import Protocol, Optional
+from typing import Any, Protocol, Optional
 from pathlib import Path
 from pydantic import BaseModel, model_validator
 
 class SeparationOutput(BaseModel):
     instrumental_path: Path
     vocals_path: Optional[Path] = None
+    profiling: Optional[dict[str, Any]] = None
 
     @model_validator(mode="after")
     def validate_paths(self) -> "SeparationOutput":
