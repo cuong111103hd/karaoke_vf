@@ -27,6 +27,34 @@ class MdxOnnxEngine(Separator):
         self._model_loaded = False
         self._lock = threading.Lock()
 
+    def _force_best_available_provider(self) -> None:
+        """
+        Force audio-separator to prefer CUDA when the runtime really supports it.
+
+        audio-separator usually auto-detects this, but in notebook/Colab-style
+        environments it can still fall back in ways that are hard to observe.
+        We therefore override the provider explicitly and log what we selected.
+        """
+        if self.separator is None:
+            return
+
+        try:
+            import torch
+            import onnxruntime as ort
+
+            available_providers = ort.get_available_providers()
+            logger.info("MDX ONNX available providers: %s", available_providers)
+
+            if torch.cuda.is_available() and "CUDAExecutionProvider" in available_providers:
+                self.separator.torch_device = torch.device("cuda")
+                self.separator.onnx_execution_provider = ["CUDAExecutionProvider"]
+                logger.info("Forcing MDX ONNX to use CUDAExecutionProvider")
+            elif "CPUExecutionProvider" in available_providers:
+                self.separator.onnx_execution_provider = ["CPUExecutionProvider"]
+                logger.info("Falling back to CPUExecutionProvider for MDX ONNX")
+        except Exception as error:
+            logger.warning("Could not override MDX ONNX execution provider: %s", error)
+
     def load_model(self) -> None:
         """
         Lazily and concurrency-safely loads the MDX ONNX model.
@@ -58,9 +86,14 @@ class MdxOnnxEngine(Separator):
                         'enable_denoise': False
                     }
                 )
+                self._force_best_available_provider()
                 logger.info(f"Loading MDX ONNX model: {self.model_name} from {self.model_dir}...")
                 self.separator.load_model(self.model_name)
                 self._model_loaded = True
+                logger.info(
+                    "Loaded MDX ONNX model with execution provider: %s",
+                    getattr(self.separator, "onnx_execution_provider", None),
+                )
                 logger.info(f"Successfully loaded MDX ONNX model: {self.model_name}")
             except Exception as e:
                 raise SeparatorStageError(

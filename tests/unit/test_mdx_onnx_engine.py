@@ -60,6 +60,25 @@ def test_mdx_onnx_engine_success(tmp_path) -> None:
         
         assert res2.instrumental_path == output_dir / "song_(Instrumental)_UVR_MDXNET_KARA_2.wav"
 
+
+def test_mdx_onnx_engine_forces_cuda_provider_when_available(tmp_path) -> None:
+    model_dir = tmp_path / "models"
+    mock_separator_instance = MagicMock()
+
+    engine = MdxOnnxEngine(
+        model_name="UVR_MDXNET_KARA_2.onnx",
+        model_dir=model_dir,
+    )
+
+    with patch("audio_separator.separator.Separator", return_value=mock_separator_instance), \
+         patch("torch.cuda.is_available", return_value=True), \
+         patch("onnxruntime.get_available_providers", return_value=["CUDAExecutionProvider", "CPUExecutionProvider"]):
+        engine.load_model()
+
+    assert mock_separator_instance.onnx_execution_provider == ["CUDAExecutionProvider"]
+    assert str(mock_separator_instance.torch_device) == "cuda"
+    mock_separator_instance.load_model.assert_called_once_with("UVR_MDXNET_KARA_2.onnx")
+
 def test_mdx_onnx_engine_missing_instrumental(tmp_path) -> None:
     model_dir = tmp_path / "models"
     output_dir = tmp_path / "output"
