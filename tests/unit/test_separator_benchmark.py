@@ -108,3 +108,41 @@ def test_evaluate_live_capacity_uses_overlap_in_playback_window() -> None:
 
     assert summary["playback_window_seconds"] == 8.0
     assert summary["levels"][0]["safe_for_live_stream"] is False
+
+
+def test_concurrency_benchmark_reports_per_job_completion_timings(tmp_path, monkeypatch) -> None:
+    input_path = tmp_path / "input.wav"
+    write_wav(input_path, duration_seconds=0.1)
+
+    class FakeEngine:
+        def __init__(self, sleep_seconds: float = 0.02):
+            self.sleep_seconds = sleep_seconds
+
+        def separate(self, input_audio: Path, output_dir: Path) -> SeparationOutput:
+            import time
+
+            output_dir.mkdir(parents=True, exist_ok=True)
+            time.sleep(self.sleep_seconds)
+            instrumental = output_dir / "instrumental.wav"
+            instrumental.write_bytes(input_audio.read_bytes())
+            return SeparationOutput(instrumental_path=instrumental)
+
+    monkeypatch.setattr(benchmark, "create_engine", lambda *args, **kwargs: FakeEngine())
+
+    result = benchmark.run_benchmark_concurrency_for_engine(
+        engine_name="demucs",
+        model_name="fake",
+        input_path=input_path,
+        output_dir=tmp_path / "outputs",
+        concurrency_levels=[2],
+        mdx_overlap=0.25,
+        mdx_segment_size=256,
+        mdx_batch_size=1,
+    )
+
+    level = result["concurrency_sweep"][0]
+    assert level["successful_runs"] == 2
+    assert len(level["job_timings"]) == 2
+    assert level["first_result_seconds"] > 0
+    assert level["p95_completion_latency_seconds"] >= level["first_result_seconds"]
+    assert all(job["completion_latency_seconds"] > 0 for job in level["job_timings"])

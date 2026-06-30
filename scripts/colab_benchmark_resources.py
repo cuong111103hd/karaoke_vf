@@ -262,7 +262,8 @@ def main() -> None:
 
             primary_gpu = gpu_summary.get("gpus", [{}])[0] if gpu_summary.get("available") and gpu_summary.get("gpus") else {}
             print(
-                f"    p95={level['p95_elapsed_seconds']:.2f}s | "
+                f"    first_result={level['first_result_seconds']:.2f}s | "
+                f"p95_completion={level['p95_completion_latency_seconds']:.2f}s | "
                 f"peak RSS={level['peak_tree_rss_mb']:.1f}MB | "
                 f"peak GPU mem={primary_gpu.get('peak_memory_used_mb', 0):.1f}MB | "
                 f"avg GPU util={primary_gpu.get('average_gpu_utilization_percent', 0):.0f}%"

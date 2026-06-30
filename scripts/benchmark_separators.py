@@ -125,7 +125,7 @@ def evaluate_live_capacity(
     max_stable: Optional[int] = None
 
     for level in sorted(concurrency_sweep, key=lambda run: run["concurrency"]):
-        p95 = level.get("p95_elapsed_seconds", 0.0)
+        p95 = level.get("p95_completion_latency_seconds", level.get("p95_elapsed_seconds", 0.0))
         p50 = level.get("p50_elapsed_seconds", 0.0)
         max_elapsed = level.get("max_elapsed_seconds", p95)
         failed_runs = level.get("failed_runs", 0)
@@ -136,11 +136,15 @@ def evaluate_live_capacity(
             "p50_elapsed_seconds": p50,
             "p95_elapsed_seconds": p95,
             "max_elapsed_seconds": max_elapsed,
+            "first_result_seconds": level.get("first_result_seconds", 0.0),
+            "p50_completion_latency_seconds": level.get("p50_completion_latency_seconds", p50),
+            "p95_completion_latency_seconds": level.get("p95_completion_latency_seconds", p95),
+            "max_completion_latency_seconds": level.get("max_completion_latency_seconds", max_elapsed),
             "failed_runs": failed_runs,
             "playback_window_seconds": playback_window,
             "safe_limit_seconds": safe_limit,
-            "p95_vs_playback_ratio": (p95 / playback_window) if playback_window > 0 else 0.0,
-            "behind_playback_by_seconds": max(0.0, p95 - playback_window),
+            "p95_vs_playback_ratio": (level.get("p95_completion_latency_seconds", p95) / playback_window) if playback_window > 0 else 0.0,
+            "behind_playback_by_seconds": max(0.0, level.get("p95_completion_latency_seconds", p95) - playback_window),
             "safe_for_live_stream": is_safe,
         }
         levels.append(assessed)
@@ -424,17 +428,27 @@ def run_benchmark_concurrency_for_engine(
         threads: List[threading.Thread] = []
         errors: List[Optional[str]] = [None] * concurrency
         thread_elapsed: List[float] = [0.0] * concurrency
+        submitted_offsets: List[float] = [0.0] * concurrency
+        started_offsets: List[float] = [0.0] * concurrency
+        completed_offsets: List[float] = [0.0] * concurrency
+        start_gate = threading.Event()
+        wall_start = 0.0
 
         def run_thread(t_index: int, engine_instance):
             t_output_dir = output_dir / f"concurrent_{engine_name}_{model_name}_c{concurrency}_t{t_index}"
+            submitted_offsets[t_index] = time.perf_counter() - wall_start
+            start_gate.wait()
             t_start = time.perf_counter()
+            started_offsets[t_index] = t_start - wall_start
             try:
                 engine_instance.separate(input_path, t_output_dir)
             except Exception as e:
                 errors[t_index] = str(e)
                 logger.error("Task %d failed: %s", t_index, e)
             finally:
-                thread_elapsed[t_index] = time.perf_counter() - t_start
+                finished = time.perf_counter()
+                thread_elapsed[t_index] = finished - t_start
+                completed_offsets[t_index] = finished - wall_start
 
         for i in range(concurrency):
             thread = threading.Thread(
@@ -452,6 +466,8 @@ def run_benchmark_concurrency_for_engine(
         for thread in threads:
             thread.start()
 
+        start_gate.set()
+
         for thread in threads:
             thread.join()
 
@@ -462,26 +478,56 @@ def run_benchmark_concurrency_for_engine(
         successful_runs = sum(1 for err in errors if err is None)
         failed_runs = concurrency - successful_runs
         throughput_jobs_per_hour = (successful_runs / wall_elapsed) * 3600 if wall_elapsed > 0 else 0.0
+        successful_elapsed = [t for i, t in enumerate(thread_elapsed) if errors[i] is None]
+        successful_completed = [t for i, t in enumerate(completed_offsets) if errors[i] is None]
+        successful_started = [t for i, t in enumerate(started_offsets) if errors[i] is None]
+        job_timings = [
+            {
+                "job_index": i,
+                "success": errors[i] is None,
+                "error": errors[i],
+                "submitted_offset_seconds": submitted_offsets[i],
+                "started_offset_seconds": started_offsets[i],
+                "completed_offset_seconds": completed_offsets[i],
+                "run_duration_seconds": thread_elapsed[i],
+                "completion_latency_seconds": completed_offsets[i],
+            }
+            for i in range(concurrency)
+        ]
 
         level_run = {
             "concurrency": concurrency,
             "wall_clock_seconds": wall_elapsed,
             "throughput_jobs_per_hour": throughput_jobs_per_hour,
-            "p50_elapsed_seconds": calculate_percentile([t for i, t in enumerate(thread_elapsed) if errors[i] is None], 50),
-            "p95_elapsed_seconds": calculate_percentile([t for i, t in enumerate(thread_elapsed) if errors[i] is None], 95),
-            "max_elapsed_seconds": max([t for i, t in enumerate(thread_elapsed) if errors[i] is None], default=0.0),
-            "p50_rtf": calculate_percentile([t / audio_duration for i, t in enumerate(thread_elapsed) if errors[i] is None], 50),
-            "p95_rtf": calculate_percentile([t / audio_duration for i, t in enumerate(thread_elapsed) if errors[i] is None], 95),
+            "first_result_seconds": min(successful_completed, default=0.0),
+            "p50_elapsed_seconds": calculate_percentile(successful_elapsed, 50),
+            "p95_elapsed_seconds": calculate_percentile(successful_elapsed, 95),
+            "max_elapsed_seconds": max(successful_elapsed, default=0.0),
+            "p50_completion_latency_seconds": calculate_percentile(successful_completed, 50),
+            "p95_completion_latency_seconds": calculate_percentile(successful_completed, 95),
+            "max_completion_latency_seconds": max(successful_completed, default=0.0),
+            "p50_start_delay_seconds": calculate_percentile(successful_started, 50),
+            "p95_start_delay_seconds": calculate_percentile(successful_started, 95),
+            "p50_rtf": calculate_percentile([t / audio_duration for t in successful_elapsed], 50),
+            "p95_rtf": calculate_percentile([t / audio_duration for t in successful_elapsed], 95),
             "errors": [err for err in errors if err is not None],
             "successful_runs": successful_runs,
             "failed_runs": failed_runs,
             "model_initialization_seconds_avg": sum(init_times) / len(init_times) if init_times else 0.0,
+            "job_timings": job_timings,
             **resources
         }
 
         logger.info(
-            "Concurrency level %d: wall_clock=%.2fs throughput=%.1f jobs/hr peak_RSS=%.1fMB avg_CPU=%.0f%% failures=%d",
-            concurrency, wall_elapsed, throughput_jobs_per_hour, level_run["peak_tree_rss_mb"], level_run["average_cpu_percent"], failed_runs
+            "Concurrency level %d: first_result=%.2fs p95_completion=%.2fs wall_clock=%.2fs throughput=%.1f jobs/hr peak_RSS=%.1fMB avg_CPU=%.0f%% failures=%d",
+            concurrency,
+            level_run["first_result_seconds"],
+            level_run["p95_completion_latency_seconds"],
+            wall_elapsed,
+            throughput_jobs_per_hour,
+            level_run["peak_tree_rss_mb"],
+            level_run["average_cpu_percent"],
+            failed_runs,
         )
         levels_results.append(level_run)
 
@@ -623,6 +669,8 @@ def main() -> None:
             for run in result["concurrency_sweep"]:
                 print(
                     f"  Concurrency {run['concurrency']} -> "
+                    f"First result: {run['first_result_seconds']:.2f}s | "
+                    f"p95 completion: {run['p95_completion_latency_seconds']:.2f}s | "
                     f"Wall clock: {run['wall_clock_seconds']:.2f}s | "
                     f"Throughput: {run['throughput_jobs_per_hour']:.1f} jobs/hr | "
                     f"p50 Latency: {run['p50_elapsed_seconds']:.2f}s | "
