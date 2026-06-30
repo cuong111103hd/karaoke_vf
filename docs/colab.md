@@ -34,8 +34,15 @@ If you do not see a GPU in the output, the benchmark can still run, but it will 
 !git clone <YOUR_REPO_URL> karaoke_vf
 %cd karaoke_vf
 !pip install uv
-!uv sync
+!uv sync --group gpu
 ```
+
+Important:
+
+- `uv sync --group gpu` is the Colab/GPU path
+- `uv sync --group cpu` is the local CPU-safe path
+
+Do not rely on `uv pip install onnxruntime-gpu` against `/usr` on Colab. The benchmark scripts run inside the repo `.venv`, so the GPU package must be present there.
 
 If you want to keep outputs, reports, or downloaded models across Colab restarts, mount Google Drive:
 
@@ -58,11 +65,18 @@ import onnxruntime as ort
 print("onnx providers:", ort.get_available_providers())
 ```
 
+Then verify the same thing inside the repo virtualenv that `uv run` will actually use:
+
+```python
+!uv run python -c "import sys, onnxruntime as ort; print(sys.executable); print(ort.get_available_providers())"
+```
+
 Interpretation:
 
 - if `torch.cuda.is_available()` is `True`, PyTorch-based workloads can use CUDA
 - if `CUDAExecutionProvider` appears in ONNX Runtime providers, ONNX workloads can use CUDA
 - if these checks fail, your benchmark may still run, but it will likely fall back to CPU
+- the `uv run python` check is the decisive one for this repo's scripts
 
 ## 4. Run a single separation job on Colab
 
@@ -98,6 +112,22 @@ OPENBLAS_NUM_THREADS=2 \
 NUMEXPR_NUM_THREADS=2 \
 uv run python scripts/colab_benchmark_resources.py \
   --input /content/drive/MyDrive/test_audio/song.wav \
+  --engine both \
+  --chunk-duration 10 \
+  --stream-overlap 0 \
+  --concurrency-levels 1,2,3,4 \
+  --output-dir /content/drive/MyDrive/colab_benchmarks
+```
+
+If you do not already have a real WAV file on Drive, omit `--input` and the script will generate a local synthetic 10-second WAV fixture automatically:
+
+```python
+!SEPARATION_MODEL_DIR=/content/drive/MyDrive/separation_models \
+OMP_NUM_THREADS=2 \
+MKL_NUM_THREADS=2 \
+OPENBLAS_NUM_THREADS=2 \
+NUMEXPR_NUM_THREADS=2 \
+uv run python scripts/colab_benchmark_resources.py \
   --engine both \
   --chunk-duration 10 \
   --stream-overlap 0 \
@@ -164,3 +194,9 @@ That report includes:
 - Colab GPU type can change between sessions, so benchmark results are not guaranteed to match from one day to another.
 - A free T4 session and a paid L4/A100 session can behave very differently.
 - If you benchmark both Demucs and MDX ONNX, confirm from the runtime checks that the chosen backend is really using CUDA instead of silently falling back to CPU.
+- If you previously created `.venv` with CPU dependencies, delete it and resync before benchmarking GPU:
+
+```python
+!rm -rf .venv
+!uv sync --group gpu
+```
