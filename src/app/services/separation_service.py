@@ -11,9 +11,9 @@ from app.storage.paths import (
     get_job_demucs_dir
 )
 from app.integrations.youtube import download_youtube_audio
-from app.audio.normalize import normalize_audio_file
-from app.integrations.demucs import run_demucs
-from app.audio.export import export_separation_outputs
+from app.services.audio.normalize import normalize_audio_file
+from app.services.separation.factory import get_separation_engine
+from app.services.audio.export import export_separation_outputs
 
 logger = logging.getLogger(__name__)
 
@@ -22,13 +22,14 @@ def run_separation(options: SeparationOptions, job_id: str = None) -> Separation
     Orchestrates the entire separation pipeline:
     1. YouTube download (yt-dlp)
     2. Audio normalization (ffmpeg)
-    3. Source separation (Demucs)
+    3. Source separation (via configured factory adapter)
     4. Discovery and export
     """
     if not job_id:
         job_id = str(uuid4())
         
-    model_name = options.model_name or settings.DEMUCS_MODEL_NAME
+    engine = get_separation_engine(options.model_name)
+    model_name = getattr(engine, "model_name", "unknown")
     output_format = options.output_format or settings.OUTPUT_FORMAT
     
     # Ensure workspace
@@ -60,13 +61,13 @@ def run_separation(options: SeparationOptions, job_id: str = None) -> Separation
     logger.info(f"[{job_id}] Starting SEPARATION stage (using model: {model_name})...")
     t_start = time.time()
     demucs_out_dir = get_job_demucs_dir(job_id)
-    run_demucs(normalized_path, demucs_out_dir, model_name)
+    separation_output = engine.separate(normalized_path, demucs_out_dir)
     stage_durations[StageName.SEPARATION] = time.time() - t_start
     
     # 4. Export
     logger.info(f"[{job_id}] Starting EXPORT stage (format: {output_format})...")
     t_start = time.time()
-    inst_path, voc_path = export_separation_outputs(job_id, model_name, output_format)
+    inst_path, voc_path = export_separation_outputs(job_id, separation_output, output_format)
     stage_durations[StageName.EXPORT] = time.time() - t_start
     
     if options.output_dir:

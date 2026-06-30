@@ -3,13 +3,14 @@ from datetime import datetime
 from uuid import uuid4
 from typing import Dict, List, Optional
 from pathlib import Path
-from fastapi import BackgroundTasks
 
 from app.api.schemas import LiveJobCreateRequest, LiveJobResponse, LiveChunkResponse
+from app.jobs.background import start_background_task
 from app.jobs.live_models import LiveJobRecord
 from app.services.live.manifest import read_live_manifest
 from app.services.live.service import run_live_separation
 from app.services.live.models import LiveOptions, LiveChunkStatus
+from app.services.separation.factory import get_separation_engine
 from app.storage.paths import get_live_manifest_path
 
 logger = logging.getLogger(__name__)
@@ -18,17 +19,28 @@ class LiveJobManager:
     def __init__(self) -> None:
         self._jobs: Dict[str, LiveJobRecord] = {}
 
-    def create_live_job(self, request: LiveJobCreateRequest, background_tasks: BackgroundTasks) -> LiveJobResponse:
+    def create_live_job(self, request: LiveJobCreateRequest) -> LiveJobResponse:
         job_id = str(uuid4())
         manifest_path = get_live_manifest_path(job_id)
         
         # Build options to trigger Pydantic validation early
         try:
+            effective_engine = get_separation_engine(
+                request.model_name,
+                request.separator_engine,
+            )
+            effective_model_name = getattr(effective_engine, "model_name", request.model_name)
+            effective_engine_name = request.separator_engine or getattr(
+                effective_engine,
+                "engine_name",
+                None,
+            )
             options = LiveOptions(
                 youtube_url=request.youtube_url,
                 chunk_duration=request.chunk_duration,
                 overlap=request.overlap,
                 max_chunks=request.max_chunks,
+                separator_engine=request.separator_engine,
                 model_name=request.model_name,
                 output_format=request.output_format
             )
@@ -44,13 +56,19 @@ class LiveJobManager:
             chunk_duration=request.chunk_duration,
             overlap=request.overlap,
             max_chunks=request.max_chunks,
-            model_name=request.model_name,
+            separator_engine=effective_engine_name,
+            model_name=effective_model_name,
             output_format=request.output_format
         )
         self._jobs[job_id] = record
-        
-        background_tasks.add_task(self._run_separation_task, job_id, options)
-        
+
+        start_background_task(
+            self._run_separation_task,
+            job_id,
+            options,
+            name=f"live-job-{job_id}",
+        )
+
         return LiveJobResponse(
             job_id=job_id,
             youtube_url=record.youtube_url,
@@ -60,6 +78,7 @@ class LiveJobManager:
             chunk_duration=record.chunk_duration,
             overlap=record.overlap,
             max_chunks=record.max_chunks,
+            separator_engine=record.separator_engine,
             model_name=record.model_name,
             output_format=record.output_format,
             chunks=[]
@@ -103,6 +122,7 @@ class LiveJobManager:
                     chunk_duration=record.chunk_duration,
                     overlap=record.overlap,
                     max_chunks=record.max_chunks,
+                    separator_engine=record.separator_engine or manifest.separator_engine,
                     model_name=record.model_name,
                     output_format=record.output_format,
                     video_title=manifest.video_title,
@@ -123,6 +143,7 @@ class LiveJobManager:
             chunk_duration=record.chunk_duration,
             overlap=record.overlap,
             max_chunks=record.max_chunks,
+            separator_engine=record.separator_engine,
             model_name=record.model_name,
             output_format=record.output_format,
             error_message=record.error_message,

@@ -23,11 +23,11 @@ from app.storage.paths import (
     get_progressive_manifest_path
 )
 from app.integrations.youtube import download_youtube_audio
-from app.audio.normalize import normalize_audio_file
+from app.services.audio.normalize import normalize_audio_file
 from app.integrations.ffmpeg import get_audio_duration
-from app.audio.chunking import plan_chunks, extract_chunk
-from app.integrations.demucs import run_demucs
-from app.audio.concat import concatenate_chunks
+from app.services.audio.chunking import plan_chunks, extract_chunk
+from app.services.separation.factory import get_separation_engine
+from app.services.audio.concat import concatenate_chunks
 from app.utils.benchmark import calculate_benchmark_metrics
 from app.services.progressive_manifest import write_progressive_manifest
 from app.services.separation_service import run_separation
@@ -48,7 +48,8 @@ def run_progressive_separation(options: ProgressiveOptions, job_id: Optional[str
         
     ensure_progressive_workspace(job_id)
     
-    model_name = options.model_name or settings.DEMUCS_MODEL_NAME
+    engine = get_separation_engine(options.model_name)
+    model_name = getattr(engine, "model_name", "unknown")
     output_format = options.output_format or settings.OUTPUT_FORMAT
     
     total_start = time.time()
@@ -93,13 +94,8 @@ def run_progressive_separation(options: ProgressiveOptions, job_id: Optional[str
             # Separate chunk
             chunk_demucs_dir = get_demucs_chunks_dir(job_id) / f"chunk_{chunk.index}"
             chunk_demucs_dir.mkdir(parents=True, exist_ok=True)
-            run_demucs(Path(chunk.chunk_path), chunk_demucs_dir, model_name)
-            
-            # Locate no_vocals output file
-            no_vocals_matches = list(chunk_demucs_dir.glob("**/no_vocals.wav"))
-            if not no_vocals_matches:
-                raise FileNotFoundError(f"Could not locate instrumental output for chunk {chunk.index}")
-            no_vocals_wav = no_vocals_matches[0]
+            separation_output = engine.separate(Path(chunk.chunk_path), chunk_demucs_dir)
+            no_vocals_wav = separation_output.instrumental_path
             
             # Export to instrumental chunks directory
             dest_inst = get_instrumental_chunks_dir(job_id) / f"inst_{chunk.index:03d}.wav"

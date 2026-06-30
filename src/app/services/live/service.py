@@ -24,7 +24,7 @@ from app.storage.paths import (
     get_live_demucs_chunks_dir,
     get_live_instrumental_chunks_dir
 )
-from app.integrations.demucs import run_demucs
+from app.services.separation.factory import get_separation_engine
 from app.integrations.ffmpeg import convert_audio
 
 logger = logging.getLogger(__name__)
@@ -41,7 +41,9 @@ def run_live_separation(options: LiveOptions, job_id: Optional[str] = None) -> L
         
     ensure_live_workspace(job_id)
     
-    model_name = options.model_name or settings.DEMUCS_MODEL_NAME
+    engine = get_separation_engine(options.model_name, options.separator_engine)
+    model_name = getattr(engine, "model_name", "unknown")
+    engine_name = options.separator_engine or getattr(engine, "engine_name", settings.SEPARATION_ENGINE)
     output_format = options.output_format or settings.OUTPUT_FORMAT
     manifest_path = get_live_manifest_path(job_id)
     
@@ -52,6 +54,7 @@ def run_live_separation(options: LiveOptions, job_id: Optional[str] = None) -> L
         status=LiveStreamStatus.ACTIVE,
         chunk_duration=options.chunk_duration,
         overlap=options.overlap,
+        separator_engine=engine_name,
         model_name=model_name,
         output_format=output_format,
         max_chunks=options.max_chunks,
@@ -114,13 +117,8 @@ def run_live_separation(options: LiveOptions, job_id: Optional[str] = None) -> L
                 
                 # Separate chunk
                 demucs_chunk_dir.mkdir(parents=True, exist_ok=True)
-                run_demucs(source_chunk_path, demucs_chunk_dir, model_name)
-                
-                # Locate no_vocals output file
-                no_vocals_matches = list(demucs_chunk_dir.glob("**/no_vocals.wav"))
-                if not no_vocals_matches:
-                    raise FileNotFoundError(f"Could not locate instrumental output for chunk {index}")
-                no_vocals_wav = no_vocals_matches[0]
+                separation_output = engine.separate(source_chunk_path, demucs_chunk_dir)
+                no_vocals_wav = separation_output.instrumental_path
                 
                 # Copy or convert to final location
                 if output_format.lower() == "wav":

@@ -9,6 +9,7 @@ class LiveJobCreateRequest(BaseModel):
     chunk_duration: float = Field(30.0, description="Chunk window length in seconds.")
     overlap: float = Field(0.0, description="Overlap duration in seconds.")
     max_chunks: Optional[int] = Field(None, description="Max number of chunks to process.")
+    separator_engine: Optional[str] = Field(None, description="Separator engine: demucs or mdx_onnx.")
     model_name: Optional[str] = Field(None, description="Demucs model name.")
     output_format: str = Field("wav", description="Output format (wav, mp3, etc.).")
 
@@ -31,6 +32,7 @@ class LiveJobResponse(BaseModel):
     chunk_duration: float
     overlap: float
     max_chunks: Optional[int] = None
+    separator_engine: Optional[str] = None
     model_name: Optional[str] = None
     output_format: str
     video_title: Optional[str] = None

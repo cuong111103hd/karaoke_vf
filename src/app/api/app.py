@@ -35,7 +35,7 @@ def create_app() -> FastAPI:
     app.include_router(live_jobs_router, prefix="/api")
     
     @app.get("/")
-    def read_root() -> dict:
+    async def read_root() -> dict:
         return {
             "name": "Karaoke Separation API",
             "status": "healthy",

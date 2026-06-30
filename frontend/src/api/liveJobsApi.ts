@@ -7,6 +7,7 @@ export async function createLiveJob(data: {
   chunk_duration: number;
   overlap: number;
   max_chunks?: number;
+  separator_engine?: string;
   model_name?: string;
   output_format: string;
 }): Promise<LiveJob> {

@@ -20,14 +20,14 @@ def test_create_live_job(manager) -> None:
         chunk_duration=30.0,
         overlap=1.0,
         max_chunks=2,
+        separator_engine="demucs",
         model_name="htdemucs",
         output_format="wav"
     )
     
-    bg_tasks = MagicMock()
-    
-    with patch("app.jobs.live_manager.get_live_manifest_path", return_value=Path("/dummy/manifest.json")):
-        res = manager.create_live_job(req, bg_tasks)
+    with patch("app.jobs.live_manager.get_live_manifest_path", return_value=Path("/dummy/manifest.json")), \
+         patch("app.jobs.live_manager.start_background_task") as mock_start:
+        res = manager.create_live_job(req)
         
         assert res.job_id is not None
         assert res.youtube_url == "https://youtube.com/watch?v=abc"
@@ -36,11 +36,11 @@ def test_create_live_job(manager) -> None:
         assert res.chunk_duration == 30.0
         assert res.overlap == 1.0
         assert res.max_chunks == 2
+        assert res.separator_engine == "demucs"
         assert res.model_name == "htdemucs"
         assert res.output_format == "wav"
         
-        # Verify background task was scheduled
-        bg_tasks.add_task.assert_called_once()
+        mock_start.assert_called_once()
 
 def test_get_live_job_not_found(manager) -> None:
     assert manager.get_live_job("nonexistent-id") is None
@@ -49,10 +49,9 @@ def test_get_live_job_starting_fallback(manager) -> None:
     req = LiveJobCreateRequest(
         youtube_url="https://youtube.com/watch?v=abc"
     )
-    bg_tasks = MagicMock()
-    
-    with patch("app.jobs.live_manager.get_live_manifest_path", return_value=Path("/dummy/manifest.json")):
-        res = manager.create_live_job(req, bg_tasks)
+    with patch("app.jobs.live_manager.get_live_manifest_path", return_value=Path("/dummy/manifest.json")), \
+         patch("app.jobs.live_manager.start_background_task"):
+        res = manager.create_live_job(req)
         
         # Retrieve before manifest exists
         job = manager.get_live_job(res.job_id)
@@ -66,11 +65,11 @@ def test_get_live_job_active_manifest(manager, tmp_path) -> None:
     req = LiveJobCreateRequest(
         youtube_url="https://youtube.com/watch?v=abc"
     )
-    bg_tasks = MagicMock()
     manifest_file = tmp_path / "live_manifest.json"
     
-    with patch("app.jobs.live_manager.get_live_manifest_path", return_value=manifest_file):
-        res = manager.create_live_job(req, bg_tasks)
+    with patch("app.jobs.live_manager.get_live_manifest_path", return_value=manifest_file), \
+         patch("app.jobs.live_manager.start_background_task"):
+        res = manager.create_live_job(req)
         
         # Write dummy manifest
         manifest = LiveManifest(
@@ -110,20 +109,47 @@ def test_background_task_failure(manager) -> None:
     req = LiveJobCreateRequest(
         youtube_url="https://youtube.com/watch?v=abc"
     )
-    bg_tasks = MagicMock()
-    
-    with patch("app.jobs.live_manager.get_live_manifest_path", return_value=Path("/dummy/manifest.json")):
-        res = manager.create_live_job(req, bg_tasks)
+    with patch("app.jobs.live_manager.get_live_manifest_path", return_value=Path("/dummy/manifest.json")), \
+         patch("app.jobs.live_manager.start_background_task"):
+        res = manager.create_live_job(req)
         
         # Run background task, force an exception in run_live_separation
         with patch("app.jobs.live_manager.run_live_separation", side_effect=ValueError("Download failed")):
-            # Get options passed to background tasks
-            options = bg_tasks.add_task.call_args[0][2]
+            options = LiveJobCreateRequest(
+                youtube_url=req.youtube_url,
+                chunk_duration=req.chunk_duration,
+                overlap=req.overlap,
+                max_chunks=req.max_chunks,
+                model_name=req.model_name,
+                output_format=req.output_format,
+            )
+            from app.services.live.models import LiveOptions
+            live_options = LiveOptions(**options.model_dump())
             
-            manager._run_separation_task(res.job_id, options)
+            manager._run_separation_task(res.job_id, live_options)
             
             # Check job failed in-memory
             job = manager.get_live_job(res.job_id)
             assert job is not None
             assert job.status == "failed"
             assert "Download failed" in job.error_message
+
+def test_create_live_job_with_mdx_engine(manager) -> None:
+    req = LiveJobCreateRequest(
+        youtube_url="https://youtube.com/watch?v=abc",
+        separator_engine="mdx_onnx",
+        model_name="UVR_MDXNET_KARA_2.onnx",
+    )
+
+    mdx_engine = MagicMock()
+    mdx_engine.model_name = "UVR_MDXNET_KARA_2.onnx"
+    mdx_engine.engine_name = "mdx_onnx"
+
+    with patch("app.jobs.live_manager.get_live_manifest_path", return_value=Path("/dummy/manifest.json")), \
+         patch("app.jobs.live_manager.get_separation_engine", return_value=mdx_engine) as mock_get_engine, \
+         patch("app.jobs.live_manager.start_background_task"):
+        res = manager.create_live_job(req)
+
+    mock_get_engine.assert_called_once_with("UVR_MDXNET_KARA_2.onnx", "mdx_onnx")
+    assert res.separator_engine == "mdx_onnx"
+    assert res.model_name == "UVR_MDXNET_KARA_2.onnx"

@@ -7,6 +7,7 @@ ENV UV_COMPILE_BYTECODE=1 \
     PATH="/app/.venv/bin:$PATH" \
     DATA_DIR=/app/data \
     TORCH_HOME=/app/models/torch \
+    SEPARATION_MODEL_DIR=/app/models/separation \
     HOST=0.0.0.0 \
     PORT=8000
 
@@ -27,7 +28,7 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY src ./src
 COPY scripts ./scripts
 RUN uv sync --frozen --no-dev \
-    && mkdir -p /app/data /app/models/torch
+    && mkdir -p /app/data /app/models/torch /app/models/separation
 
 EXPOSE 8000
 

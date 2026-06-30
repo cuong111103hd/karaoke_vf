@@ -1,7 +1,7 @@
 import subprocess
 from pathlib import Path
 from typing import List
-from app.audio.overlap import build_acrossfade_filter
+from app.services.audio.overlap import build_acrossfade_filter
 from app.integrations.ffmpeg import check_ffmpeg_available
 from app.services.errors import ExportError
 from app.utils.process import execute_command

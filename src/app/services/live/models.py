@@ -17,6 +17,7 @@ class LiveOptions(BaseModel):
     youtube_url: str
     chunk_duration: float = 30.0
     overlap: float = 0.0
+    separator_engine: Optional[str] = None
     model_name: Optional[str] = None
     output_format: Optional[str] = None
     max_chunks: Optional[int] = None
@@ -53,6 +54,7 @@ class LiveManifest(BaseModel):
     status: LiveStreamStatus
     chunk_duration: float
     overlap: float = 0.0
+    separator_engine: Optional[str] = None
     model_name: str
     output_format: str
     max_chunks: Optional[int] = None

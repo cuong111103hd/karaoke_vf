@@ -9,8 +9,12 @@ data/jobs/
 data/downloads/
 data/outputs/
 data/cache/
+data/models/
+data/benchmark_outputs/
+data/benchmark_dummy.wav
 # Keep gitkeeps if we want to commit empty dirs
 !data/**/.gitkeep
 
 # Environment files
 .env
+data/

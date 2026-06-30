@@ -146,6 +146,11 @@ By default, the playback consumer runs in `continuous` mode. Instead of spawning
 * When playing sequentially with `overlap > 0` in `continuous` mode, the player trims the overlapping region and blends the adjacent chunks using a linear crossfade window. This eliminates clicks or repeated audio at chunk boundaries.
 * If a subsequent chunk is not ready in time, the player will pause until the next chunk becomes available.
 
+#### Stream Chunk Overlap vs. MDX Internal Overlap
+It is important to distinguish between these two different overlap parameters:
+1. **Stream Chunk Overlap (e.g., `-ov 1.0` or `5.0s`)**: This is the temporal overlap used when slicing the source audio stream into sequential files (e.g., 30s chunks with 5s overlap). This overlap ensures that adjacent chunks share identical audio boundaries, which the playback consumer uses to perform a crossfade stitch in memory for gapless playback.
+2. **MDX Internal Inference Overlap (e.g., `MDX_OVERLAP=0.25`)**: This is the mathematical overlap ratio (sliding window step size) used internally by the MDX ONNX model inside the `audio-separator` library during neural network inference. It does not affect chunk boundaries or playback stitching; instead, it reduces boundary artifacts within each individual chunk's processed stems.
+
 ---
 
 ## Prerequisites & Limitations

@@ -11,6 +11,12 @@ services:
       DATA_DIR: /app/data
       DEMUCS_MODEL_NAME: ${DEMUCS_MODEL_NAME:-htdemucs}
       OUTPUT_FORMAT: ${OUTPUT_FORMAT:-wav}
+      SEPARATION_ENGINE: ${SEPARATION_ENGINE:-demucs}
+      SEPARATION_MODEL: ${SEPARATION_MODEL:-}
+      SEPARATION_MODEL_DIR: /app/models/separation
+      MDX_SEGMENT_SIZE: ${MDX_SEGMENT_SIZE:-256}
+      MDX_OVERLAP: ${MDX_OVERLAP:-0.25}
+      MDX_BATCH_SIZE: ${MDX_BATCH_SIZE:-1}
       HOST: 0.0.0.0
       PORT: 8000
       TORCH_HOME: /app/models/torch
@@ -22,7 +28,7 @@ services:
       NUMEXPR_NUM_THREADS: ${INFERENCE_THREADS:-2}
     volumes:
       - ./data:/app/data
-      - demucs-models:/app/models
+      - separation-models:/app/models
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     cpus: ${BACKEND_CPUS:-8.0}
@@ -47,4 +53,4 @@ services:
     restart: unless-stopped
 
 volumes:
-  demucs-models:
+  separation-models:

@@ -6,6 +6,7 @@ interface LiveJobFormProps {
     chunk_duration: number;
     overlap: number;
     max_chunks?: number;
+    separator_engine?: string;
     model_name?: string;
     output_format: string;
   }) => void;
@@ -18,6 +19,7 @@ export const LiveJobForm: React.FC<LiveJobFormProps> = ({ onSubmit, isLoading, e
   const [chunkDuration, setChunkDuration] = useState(30.0);
   const [overlap, setOverlap] = useState(0.0);
   const [maxChunks, setMaxChunks] = useState('');
+  const [engine, setEngine] = useState<'demucs' | 'mdx_onnx'>('demucs');
   const [model, setModel] = useState('htdemucs');
   const [format, setFormat] = useState('wav');
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -36,14 +38,25 @@ export const LiveJobForm: React.FC<LiveJobFormProps> = ({ onSubmit, isLoading, e
       return;
     }
 
+    if (!model.trim()) {
+      setValidationError('Model is required');
+      return;
+    }
+
     onSubmit({
       youtube_url: url.trim(),
       chunk_duration: chunkDuration,
       overlap: overlap,
       max_chunks: maxChunks ? parseInt(maxChunks, 10) : undefined,
+      separator_engine: engine,
       model_name: model || undefined,
       output_format: format,
     });
+  };
+
+  const handleEngineChange = (nextEngine: 'demucs' | 'mdx_onnx') => {
+    setEngine(nextEngine);
+    setModel(nextEngine === 'demucs' ? 'htdemucs' : 'UVR_MDXNET_KARA_2.onnx');
   };
 
   return (
@@ -111,21 +124,45 @@ export const LiveJobForm: React.FC<LiveJobFormProps> = ({ onSubmit, isLoading, e
         </div>
 
         <div className="form-group">
-          <label htmlFor="model_name">Demucs Model</label>
+          <label htmlFor="separator_engine">Separator</label>
           <select
-            id="model_name"
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
+            id="separator_engine"
+            value={engine}
+            onChange={(e) => handleEngineChange(e.target.value as 'demucs' | 'mdx_onnx')}
             disabled={isLoading}
           >
-            <option value="htdemucs">htdemucs (recommended)</option>
-            <option value="htdemucs_ft">htdemucs_ft</option>
-            <option value="htdemucs_6s">htdemucs_6s</option>
+            <option value="demucs">Demucs</option>
+            <option value="mdx_onnx">MDX ONNX</option>
           </select>
         </div>
       </div>
 
       <div className="form-row">
+        <div className="form-group">
+          <label htmlFor="model_name">Model</label>
+          {engine === 'demucs' ? (
+            <select
+              id="model_name"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              disabled={isLoading}
+            >
+              <option value="htdemucs">htdemucs (recommended)</option>
+              <option value="htdemucs_ft">htdemucs_ft</option>
+              <option value="htdemucs_6s">htdemucs_6s</option>
+            </select>
+          ) : (
+            <input
+              id="model_name"
+              type="text"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              placeholder="UVR_MDXNET_KARA_2.onnx"
+              disabled={isLoading}
+            />
+          )}
+        </div>
+
         <div className="form-group">
           <label htmlFor="output_format">Output Format</label>
           <select
@@ -138,7 +175,6 @@ export const LiveJobForm: React.FC<LiveJobFormProps> = ({ onSubmit, isLoading, e
             <option value="mp3">MP3</option>
           </select>
         </div>
-        <div className="form-group spacer"></div>
       </div>
 
       <button type="submit" className="btn btn-primary" disabled={isLoading}>

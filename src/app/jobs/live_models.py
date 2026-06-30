@@ -11,5 +11,6 @@ class LiveJobRecord(BaseModel):
     chunk_duration: float
     overlap: float
     max_chunks: Optional[int] = None
+    separator_engine: Optional[str] = None
     model_name: Optional[str] = None
     output_format: str

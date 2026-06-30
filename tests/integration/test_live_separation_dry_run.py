@@ -30,22 +30,29 @@ def test_live_separation_dry_run(tmp_path, monkeypatch) -> None:
     
     job_id = "live-dry-run-job"
     
-    # Side-effect function for run_demucs that writes a fake no_vocals.wav
-    def mock_run_demucs_side_effect(input_path, output_dir, model_name):
-        track_dir = output_dir / model_name / input_path.stem
-        track_dir.mkdir(parents=True, exist_ok=True)
-        (track_dir / "no_vocals.wav").write_text("dummy instrumental WAV content")
+    mock_engine = MagicMock()
+    mock_engine.engine_name = "demucs"
+    mock_engine.model_name = "htdemucs"
+    
+    def mock_separate_side_effect(input_path, output_dir):
+        inst = output_dir / "no_vocals.wav"
+        inst.write_text("dummy instrumental WAV content")
+        from app.services.separation.contracts import SeparationOutput
+        return SeparationOutput(instrumental_path=inst)
+        
+    mock_engine.separate.side_effect = mock_separate_side_effect
         
     mock_source = MagicMock()
     mock_source.metadata = dummy_youtube_meta
     
     with patch("app.services.live.service.YouTubeLiveSource", return_value=mock_source), \
-         patch("app.services.live.service.run_demucs", side_effect=mock_run_demucs_side_effect):
+         patch("app.services.live.service.get_separation_engine", return_value=mock_engine) as mock_get_engine:
          
          options = LiveOptions(
              youtube_url="https://youtube.com/watch?v=dQw4w9WgXcQ",
              chunk_duration=30.0,
-             max_chunks=2
+             max_chunks=2,
+             model_name="htdemucs_ft",
          )
          
          result = run_live_separation(options, job_id=job_id)
@@ -53,6 +60,7 @@ def test_live_separation_dry_run(tmp_path, monkeypatch) -> None:
          assert result.job_id == job_id
          assert result.total_chunks == 2
          assert result.status == LiveStreamStatus.COMPLETED
+         mock_get_engine.assert_called_once_with("htdemucs_ft", None)
          
          manifest_path = Path(result.manifest_path)
          assert manifest_path.exists()

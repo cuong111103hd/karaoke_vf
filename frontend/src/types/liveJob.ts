@@ -18,6 +18,7 @@ export interface LiveJob {
   chunk_duration: number;
   overlap: number;
   max_chunks?: number;
+  separator_engine?: 'demucs' | 'mdx_onnx';
   model_name?: string;
   output_format: string;
   video_title?: string;

@@ -1,7 +1,7 @@
 import sys
 import importlib
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 # Add src folder to sys.path to resolve imports correctly
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "src"))
@@ -17,8 +17,8 @@ def test_separation_dry_run(tmp_path, monkeypatch) -> None:
     import app.storage.paths
     importlib.reload(app.storage.paths)
     
-    import app.audio.export
-    importlib.reload(app.audio.export)
+    import app.services.audio.export
+    importlib.reload(app.services.audio.export)
     
     import app.services.separation_service
     importlib.reload(app.services.separation_service)
@@ -35,16 +35,27 @@ def test_separation_dry_run(tmp_path, monkeypatch) -> None:
     
     job_id = "dry-run-job"
     
-    def mock_run_demucs_side_effect(input_path, output_dir, model_name):
-        track_dir = output_dir / model_name / "source_normalized"
+    mock_engine = MagicMock()
+    mock_engine.model_name = "htdemucs"
+    
+    def mock_separate_side_effect(input_path, output_dir):
+        track_dir = output_dir / "htdemucs" / "song"
         track_dir.mkdir(parents=True, exist_ok=True)
-        (track_dir / "no_vocals.wav").write_text("dummy instrumental WAV content")
-        (track_dir / "vocals.wav").write_text("dummy vocals WAV content")
+        inst = track_dir / "no_vocals.wav"
+        inst.write_text("dummy instrumental WAV content")
+        voc = track_dir / "vocals.wav"
+        voc.write_text("dummy vocals WAV content")
+        from app.services.separation.contracts import SeparationOutput
+        return SeparationOutput(
+            instrumental_path=inst,
+            vocals_path=voc
+        )
+    mock_engine.separate.side_effect = mock_separate_side_effect
         
     with patch("app.services.separation_service.download_youtube_audio") as mock_download, \
          patch("app.services.separation_service.normalize_audio_file") as mock_normalize, \
-         patch("app.services.separation_service.run_demucs", side_effect=mock_run_demucs_side_effect) as mock_demucs, \
-         patch("app.audio.export.convert_audio") as mock_convert:
+         patch("app.services.separation_service.get_separation_engine", return_value=mock_engine) as mock_get_engine, \
+         patch("app.services.audio.export.convert_audio") as mock_convert:
          
          raw_path = tmp_path / "jobs" / job_id / "downloads" / "raw.mp3"
          raw_path.parent.mkdir(parents=True, exist_ok=True)
@@ -66,5 +77,6 @@ def test_separation_dry_run(tmp_path, monkeypatch) -> None:
          
          mock_download.assert_called_once_with(options.youtube_url, job_id)
          mock_normalize.assert_called_once()
-         mock_demucs.assert_called_once()
+         mock_get_engine.assert_called_once_with(None)
+         mock_engine.separate.assert_called_once()
          assert mock_convert.call_count >= 1

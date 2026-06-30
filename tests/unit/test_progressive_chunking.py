@@ -12,11 +12,11 @@ def test_plan_chunks_standard(tmp_path, monkeypatch) -> None:
     custom_settings = Settings()
     
     import app.storage.paths
-    import app.audio.chunking
+    import app.services.audio.chunking
     monkeypatch.setattr(app.storage.paths, "settings", custom_settings)
-    monkeypatch.setattr(app.audio.chunking, "get_chunks_dir", lambda j: tmp_path / "chunks")
+    monkeypatch.setattr(app.services.audio.chunking, "get_chunks_dir", lambda j: tmp_path / "chunks")
     
-    from app.audio.chunking import plan_chunks
+    from app.services.audio.chunking import plan_chunks
     
     job_id = "test-job-chunk"
     chunks = plan_chunks(source_duration=100.0, chunk_duration=30.0, overlap=5.0, job_id=job_id)

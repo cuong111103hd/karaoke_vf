@@ -1,8 +1,8 @@
 from pathlib import Path
 from typing import Dict, Any, Tuple, Optional
 from app.integrations.youtube import download_youtube_audio
-from app.audio.normalize import normalize_audio_file
-from app.audio.chunking import extract_chunk
+from app.services.audio.normalize import normalize_audio_file
+from app.services.audio.chunking import extract_chunk
 from app.storage.paths import get_live_dir
 
 class YouTubeLiveSource:

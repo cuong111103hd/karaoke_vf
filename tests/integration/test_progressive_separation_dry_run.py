@@ -1,7 +1,7 @@
 import sys
 import importlib
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 import pytest
 
 # Add src folder to sys.path to resolve imports correctly
@@ -33,13 +33,17 @@ def test_progressive_separation_dry_run(tmp_path, monkeypatch) -> None:
     
     job_id = "prog-dry-run-job"
     
-    # Side-effect function for run_demucs that writes a fake no_vocals.wav
-    def mock_run_demucs_side_effect(input_path, output_dir, model_name):
-        chunk_name = input_path.stem
-        track_dir = output_dir / model_name / chunk_name
-        track_dir.mkdir(parents=True, exist_ok=True)
-        (track_dir / "no_vocals.wav").write_text("dummy instrumental WAV content")
-        
+    mock_engine = MagicMock()
+    mock_engine.model_name = "htdemucs"
+    
+    def mock_separate_side_effect(input_path, output_dir):
+        inst = output_dir / "no_vocals.wav"
+        inst.write_text("dummy instrumental WAV content")
+        from app.services.separation.contracts import SeparationOutput
+        return SeparationOutput(instrumental_path=inst)
+    
+    mock_engine.separate.side_effect = mock_separate_side_effect
+    
     def mock_concat_side_effect(input_paths, output_path, overlap_seconds):
         output_path.write_text("dummy joined preview")
         
@@ -47,7 +51,7 @@ def test_progressive_separation_dry_run(tmp_path, monkeypatch) -> None:
          patch("app.services.progressive_separation_service.normalize_audio_file") as mock_normalize, \
          patch("app.services.progressive_separation_service.get_audio_duration", return_value=75.0) as mock_duration, \
          patch("app.services.progressive_separation_service.extract_chunk") as mock_extract, \
-         patch("app.services.progressive_separation_service.run_demucs", side_effect=mock_run_demucs_side_effect) as mock_demucs, \
+         patch("app.services.progressive_separation_service.get_separation_engine", return_value=mock_engine) as mock_get_engine, \
          patch("app.services.progressive_separation_service.concatenate_chunks", side_effect=mock_concat_side_effect) as mock_concat:
          
          raw_path = tmp_path / "jobs" / job_id / "downloads" / "raw.mp3"
@@ -99,19 +103,25 @@ def test_progressive_separation_chunk_failure_writes_manifest_without_preview(tm
     
     job_id = "prog-failing-chunk-job"
     
-    def mock_run_demucs_side_effect(input_path, output_dir, model_name):
+    mock_engine = MagicMock()
+    mock_engine.model_name = "htdemucs"
+    
+    def mock_separate_side_effect(input_path, output_dir):
         chunk_name = input_path.stem
         if chunk_name == "chunk_001":
             raise RuntimeError("demucs failed for chunk 1")
-        track_dir = output_dir / model_name / chunk_name
-        track_dir.mkdir(parents=True, exist_ok=True)
-        (track_dir / "no_vocals.wav").write_text("dummy instrumental WAV content")
+        inst = output_dir / "no_vocals.wav"
+        inst.write_text("dummy instrumental WAV content")
+        from app.services.separation.contracts import SeparationOutput
+        return SeparationOutput(instrumental_path=inst)
+    
+    mock_engine.separate.side_effect = mock_separate_side_effect
     
     with patch("app.services.progressive_separation_service.download_youtube_audio") as mock_download, \
          patch("app.services.progressive_separation_service.normalize_audio_file"), \
          patch("app.services.progressive_separation_service.get_audio_duration", return_value=55.0), \
          patch("app.services.progressive_separation_service.extract_chunk"), \
-         patch("app.services.progressive_separation_service.run_demucs", side_effect=mock_run_demucs_side_effect), \
+         patch("app.services.progressive_separation_service.get_separation_engine", return_value=mock_engine), \
          patch("app.services.progressive_separation_service.concatenate_chunks") as mock_concat:
          
          raw_path = tmp_path / "jobs" / job_id / "downloads" / "raw.mp3"
@@ -157,11 +167,16 @@ def test_progressive_local_compare_does_not_call_batch_separation(tmp_path, monk
     local_audio = tmp_path / "local.wav"
     local_audio.write_text("dummy local audio")
     
-    def mock_run_demucs_side_effect(input_path, output_dir, model_name):
-        chunk_name = input_path.stem
-        track_dir = output_dir / model_name / chunk_name
-        track_dir.mkdir(parents=True, exist_ok=True)
-        (track_dir / "no_vocals.wav").write_text("dummy instrumental WAV content")
+    mock_engine = MagicMock()
+    mock_engine.model_name = "htdemucs"
+    
+    def mock_separate_side_effect(input_path, output_dir):
+        inst = output_dir / "no_vocals.wav"
+        inst.write_text("dummy instrumental WAV content")
+        from app.services.separation.contracts import SeparationOutput
+        return SeparationOutput(instrumental_path=inst)
+        
+    mock_engine.separate.side_effect = mock_separate_side_effect
     
     def mock_concat_side_effect(input_paths, output_path, overlap_seconds):
         output_path.write_text("dummy joined preview")
@@ -170,7 +185,7 @@ def test_progressive_local_compare_does_not_call_batch_separation(tmp_path, monk
          patch("app.services.progressive_separation_service.normalize_audio_file"), \
          patch("app.services.progressive_separation_service.get_audio_duration", return_value=30.0), \
          patch("app.services.progressive_separation_service.extract_chunk"), \
-         patch("app.services.progressive_separation_service.run_demucs", side_effect=mock_run_demucs_side_effect), \
+         patch("app.services.progressive_separation_service.get_separation_engine", return_value=mock_engine), \
          patch("app.services.progressive_separation_service.concatenate_chunks", side_effect=mock_concat_side_effect), \
          patch("app.services.progressive_separation_service.run_separation") as mock_batch:
          

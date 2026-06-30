@@ -67,6 +67,11 @@ export const LiveJobStatus: React.FC<LiveJobStatusProps> = ({ job, lastUpdated }
         </div>
 
         <div className="status-item">
+          <span className="label">Separator</span>
+          <span className="value">{job.separator_engine || 'demucs'}</span>
+        </div>
+
+        <div className="status-item">
           <span className="label">Model</span>
           <span className="value">{job.model_name || 'htdemucs'}</span>
         </div>

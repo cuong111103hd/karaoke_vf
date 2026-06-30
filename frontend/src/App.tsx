@@ -96,6 +96,7 @@ function App() {
     chunk_duration: number;
     overlap: number;
     max_chunks?: number;
+    separator_engine?: string;
     model_name?: string;
     output_format: string;
   }) => {

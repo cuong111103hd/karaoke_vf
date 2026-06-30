@@ -1,40 +1,89 @@
-import sys
-import importlib
 from pathlib import Path
 
-# Add src folder to sys.path to resolve imports correctly
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "src"))
+import pytest
 
-def test_settings_defaults() -> None:
-    # Force fresh import/reload of settings module
-    if "app.config.settings" in sys.modules:
-        importlib.reload(sys.modules["app.config.settings"])
-    from app.config.settings import Settings, settings
-    
-    # Assert defaults
+from app.config.settings import Settings
+
+
+SETTING_KEYS = (
+    "DATA_DIR",
+    "DEMUCS_MODEL_NAME",
+    "OUTPUT_FORMAT",
+    "PORT",
+    "SEPARATION_ENGINE",
+    "SEPARATION_MODEL",
+    "SEPARATION_MODEL_DIR",
+    "MDX_SEGMENT_SIZE",
+    "MDX_OVERLAP",
+    "MDX_BATCH_SIZE",
+)
+
+
+def clear_setting_environment(monkeypatch) -> None:
+    for key in SETTING_KEYS:
+        monkeypatch.delenv(key, raising=False)
+
+
+def test_settings_defaults(monkeypatch, tmp_path) -> None:
+    clear_setting_environment(monkeypatch)
+    monkeypatch.chdir(tmp_path)
+
+    settings = Settings()
+
+    assert settings.DATA_DIR == tmp_path / "data"
     assert settings.DEMUCS_MODEL_NAME == "htdemucs"
     assert settings.OUTPUT_FORMAT == "wav"
     assert settings.HOST == "127.0.0.1"
     assert settings.PORT == 8000
-    
-    s = Settings()
-    assert s.DEMUCS_MODEL_NAME == "htdemucs"
+    assert settings.SEPARATION_ENGINE == "demucs"
+    assert settings.SEPARATION_MODEL == ""
+    assert settings.SEPARATION_MODEL_DIR == tmp_path / "data" / "models"
+    assert settings.MDX_SEGMENT_SIZE == 256
+    assert settings.MDX_OVERLAP == 0.25
+    assert settings.MDX_BATCH_SIZE == 1
 
-def test_settings_overrides(monkeypatch) -> None:
+
+def test_settings_overrides(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("DATA_DIR", str(tmp_path / "data"))
     monkeypatch.setenv("DEMUCS_MODEL_NAME", "custom_model")
     monkeypatch.setenv("OUTPUT_FORMAT", "MP3")
     monkeypatch.setenv("PORT", "9000")
-    
-    # Force reload of settings module so class attributes are re-evaluated
-    import app.config.settings
-    importlib.reload(app.config.settings)
-    
-    from app.config.settings import Settings, settings
+    monkeypatch.setenv("SEPARATION_ENGINE", "mdx_onnx")
+    monkeypatch.setenv("SEPARATION_MODEL", "UVR_MDXNET_KARA_2.onnx")
+    monkeypatch.setenv("SEPARATION_MODEL_DIR", str(tmp_path / "models"))
+    monkeypatch.setenv("MDX_SEGMENT_SIZE", "512")
+    monkeypatch.setenv("MDX_OVERLAP", "0.5")
+    monkeypatch.setenv("MDX_BATCH_SIZE", "4")
+
+    settings = Settings()
+
     assert settings.DEMUCS_MODEL_NAME == "custom_model"
     assert settings.OUTPUT_FORMAT == "mp3"
     assert settings.PORT == 9000
-    
-    s = Settings()
-    assert s.DEMUCS_MODEL_NAME == "custom_model"
-    assert s.OUTPUT_FORMAT == "mp3"
-    assert s.PORT == 9000
+    assert settings.SEPARATION_ENGINE == "mdx_onnx"
+    assert settings.SEPARATION_MODEL == "UVR_MDXNET_KARA_2.onnx"
+    assert settings.SEPARATION_MODEL_DIR == tmp_path / "models"
+    assert settings.MDX_SEGMENT_SIZE == 512
+    assert settings.MDX_OVERLAP == 0.5
+    assert settings.MDX_BATCH_SIZE == 4
+
+
+def test_settings_invalid_engine(monkeypatch) -> None:
+    monkeypatch.setenv("SEPARATION_ENGINE", "invalid_engine")
+    with pytest.raises(ValueError, match="Invalid SEPARATION_ENGINE"):
+        Settings()
+
+
+@pytest.mark.parametrize(
+    ("name", "value", "message"),
+    [
+        ("MDX_SEGMENT_SIZE", "0", "MDX_SEGMENT_SIZE"),
+        ("MDX_OVERLAP", "0", "MDX_OVERLAP"),
+        ("MDX_OVERLAP", "1", "MDX_OVERLAP"),
+        ("MDX_BATCH_SIZE", "0", "MDX_BATCH_SIZE"),
+    ],
+)
+def test_settings_reject_invalid_mdx_values(monkeypatch, name, value, message) -> None:
+    monkeypatch.setenv(name, value)
+    with pytest.raises(ValueError, match=message):
+        Settings()

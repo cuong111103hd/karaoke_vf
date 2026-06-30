@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse
 from pathlib import Path
+from app.api.responses import stream_file_response
 from app.jobs.manager import JobManager
 from app.jobs.models import JobStatus
 
@@ -8,7 +8,7 @@ router = APIRouter(prefix="/files", tags=["files"])
 manager = JobManager()
 
 @router.get("/jobs/{job_id}/instrumental")
-def get_instrumental_file(job_id: str) -> FileResponse:
+async def get_instrumental_file(job_id: str):
     job = manager.get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found.")
@@ -19,10 +19,11 @@ def get_instrumental_file(job_id: str) -> FileResponse:
     if not path.exists():
         raise HTTPException(status_code=404, detail="Instrumental file not found on disk.")
         
-    return FileResponse(path, filename=path.name)
+    media_type = "audio/wav" if path.suffix.lower() == ".wav" else "audio/mpeg"
+    return stream_file_response(path, media_type=media_type, filename=path.name)
 
 @router.get("/jobs/{job_id}/vocals")
-def get_vocals_file(job_id: str) -> FileResponse:
+async def get_vocals_file(job_id: str):
     job = manager.get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found.")
@@ -35,4 +36,5 @@ def get_vocals_file(job_id: str) -> FileResponse:
     if not path.exists():
         raise HTTPException(status_code=404, detail="Vocals file not found on disk.")
         
-    return FileResponse(path, filename=path.name)
+    media_type = "audio/wav" if path.suffix.lower() == ".wav" else "audio/mpeg"
+    return stream_file_response(path, media_type=media_type, filename=path.name)

@@ -28,10 +28,19 @@ def test_live_first_ready_log(caplog, monkeypatch, tmp_path) -> None:
     mock_source = MagicMock()
     mock_source.metadata = {"title": "Test Title", "duration": 15.0}
     
+    mock_engine = MagicMock()
+    mock_engine.engine_name = "demucs"
+    mock_engine.model_name = "htdemucs"
+    from app.services.separation.contracts import SeparationOutput
+    
+    dummy_wav = tmp_path / "no_vocals.wav"
+    dummy_wav.write_text("dummy")
+    
+    mock_engine.separate.return_value = SeparationOutput(instrumental_path=dummy_wav)
+    
     with patch("app.services.live.service.YouTubeLiveSource", return_value=mock_source), \
-         patch("app.services.live.service.run_demucs"), \
+         patch("app.services.live.service.get_separation_engine", return_value=mock_engine), \
          patch("app.services.live.service.shutil.copy2"), \
-         patch("app.services.live.service.Path.glob", return_value=[Path("dummy/no_vocals.wav")]), \
          patch("app.services.live.service.ensure_live_workspace"):
          
         with caplog.at_level(logging.INFO):
