@@ -191,6 +191,89 @@ def _stage_p95(level: Dict[str, Any], key: str) -> float:
     return float(level.get("stage_breakdown", {}).get(key, {}).get("p95_seconds", 0.0))
 
 
+def build_task_breakdown(level: Dict[str, Any], playback_window_seconds: float) -> List[Dict[str, Any]]:
+    task_breakdowns: List[Dict[str, Any]] = []
+    for job in level.get("job_timings", []):
+        durations = job.get("timing_durations", {})
+        measured_parts = {
+            "queue_wait_seconds": float(durations.get("queue_wait_seconds", 0.0)),
+            "engine_launch_seconds": float(durations.get("engine_launch_seconds", 0.0)),
+            "engine_setup_seconds": float(durations.get("engine_setup_seconds", 0.0)),
+            "inference_seconds": float(durations.get("inference_seconds", 0.0)),
+            "engine_wav_write_seconds": float(durations.get("engine_wav_write_seconds", 0.0)),
+            "engine_cleanup_seconds": float(durations.get("engine_cleanup_seconds", 0.0)),
+        }
+        end_to_end = float(durations.get("end_to_end_seconds", job.get("completion_latency_seconds", 0.0)))
+        known_parts_total = sum(measured_parts.values())
+        measured_parts["unattributed_seconds"] = max(0.0, end_to_end - known_parts_total)
+
+        bottleneck_name, bottleneck_seconds = max(
+            measured_parts.items(),
+            key=lambda item: item[1],
+            default=("unknown", 0.0),
+        )
+        task_breakdowns.append(
+            {
+                "job_index": job.get("job_index"),
+                "success": job.get("success", False),
+                "end_to_end_seconds": end_to_end,
+                "playback_window_seconds": playback_window_seconds,
+                "safe_for_live_stream": job.get("success", False) and end_to_end <= playback_window_seconds,
+                "behind_playback_by_seconds": max(0.0, end_to_end - playback_window_seconds),
+                "bottleneck_name": bottleneck_name,
+                "bottleneck_seconds": bottleneck_seconds,
+                "parts": measured_parts,
+            }
+        )
+    return task_breakdowns
+
+
+def summarize_task_breakdown(task_breakdowns: List[Dict[str, Any]]) -> Dict[str, Any]:
+    if not task_breakdowns:
+        return {
+            "safe_task_count": 0,
+            "unsafe_task_count": 0,
+            "worst_task": None,
+            "bottleneck_counts": {},
+        }
+
+    bottleneck_counts: Dict[str, int] = {}
+    for task in task_breakdowns:
+        name = str(task.get("bottleneck_name", "unknown"))
+        bottleneck_counts[name] = bottleneck_counts.get(name, 0) + 1
+
+    safe_count = sum(1 for task in task_breakdowns if task.get("safe_for_live_stream"))
+    worst_task = max(task_breakdowns, key=lambda task: float(task.get("end_to_end_seconds", 0.0)))
+    return {
+        "safe_task_count": safe_count,
+        "unsafe_task_count": len(task_breakdowns) - safe_count,
+        "worst_task": worst_task,
+        "bottleneck_counts": bottleneck_counts,
+    }
+
+
+def print_task_breakdown(task_breakdowns: List[Dict[str, Any]]) -> None:
+    if not task_breakdowns:
+        return
+
+    print("    per-task breakdown:")
+    for task in sorted(task_breakdowns, key=lambda item: int(item.get("job_index", 0))):
+        parts = task["parts"]
+        status = "safe" if task["safe_for_live_stream"] else "late"
+        print(
+            f"      task {task['job_index']:>2}: {status} "
+            f"total={task['end_to_end_seconds']:.2f}s "
+            f"behind={task['behind_playback_by_seconds']:.2f}s "
+            f"launch={parts['engine_launch_seconds']:.2f}s "
+            f"setup={parts['engine_setup_seconds']:.2f}s "
+            f"inference={parts['inference_seconds']:.2f}s "
+            f"wav={parts['engine_wav_write_seconds']:.2f}s "
+            f"cleanup={parts['engine_cleanup_seconds']:.2f}s "
+            f"other={parts['unattributed_seconds']:.2f}s "
+            f"bottleneck={task['bottleneck_name']}"
+        )
+
+
 def main() -> None:
     args = parse_args()
     if args.chunk_duration <= 0:
@@ -262,6 +345,10 @@ def main() -> None:
             gpu_summary = sampler.stop()
             level = sweep["concurrency_sweep"][0]
             level["gpu_summary"] = gpu_summary
+            playback_window = args.chunk_duration - args.stream_overlap
+            task_breakdown = build_task_breakdown(level, playback_window)
+            level["task_breakdown"] = task_breakdown
+            level["task_breakdown_summary"] = summarize_task_breakdown(task_breakdown)
             per_level_results.append(level)
 
             primary_gpu = gpu_summary.get("gpus", [{}])[0] if gpu_summary.get("available") and gpu_summary.get("gpus") else {}
@@ -277,6 +364,7 @@ def main() -> None:
                 f"engine_wav={_stage_p95(level, 'wav_finalize_seconds'):.2f}s | "
                 f"total={_stage_p95(level, 'total_seconds'):.2f}s"
             )
+            print_task_breakdown(task_breakdown)
 
         live_summary = evaluate_live_capacity(
             per_level_results,

@@ -55,3 +55,44 @@ def test_summarize_gpu_samples() -> None:
     assert summary["available"] is True
     assert summary["gpus"][0]["peak_memory_used_mb"] == 1200.0
     assert summary["gpus"][0]["average_gpu_utilization_percent"] == 55.0
+
+
+def test_build_task_breakdown_marks_realtime_and_bottleneck() -> None:
+    breakdown = colab_benchmark.build_task_breakdown(
+        {
+            "job_timings": [
+                {
+                    "job_index": 0,
+                    "success": True,
+                    "completion_latency_seconds": 9.0,
+                    "timing_durations": {
+                        "end_to_end_seconds": 9.0,
+                        "queue_wait_seconds": 0.1,
+                        "inference_seconds": 6.0,
+                        "engine_wav_write_seconds": 2.0,
+                    },
+                },
+                {
+                    "job_index": 1,
+                    "success": True,
+                    "completion_latency_seconds": 12.0,
+                    "timing_durations": {
+                        "end_to_end_seconds": 12.0,
+                        "engine_launch_seconds": 7.0,
+                        "inference_seconds": 3.0,
+                    },
+                },
+            ],
+        },
+        playback_window_seconds=10.0,
+    )
+
+    summary = colab_benchmark.summarize_task_breakdown(breakdown)
+
+    assert breakdown[0]["safe_for_live_stream"] is True
+    assert breakdown[0]["bottleneck_name"] == "inference_seconds"
+    assert breakdown[1]["safe_for_live_stream"] is False
+    assert breakdown[1]["behind_playback_by_seconds"] == 2.0
+    assert breakdown[1]["bottleneck_name"] == "engine_launch_seconds"
+    assert summary["safe_task_count"] == 1
+    assert summary["unsafe_task_count"] == 1
