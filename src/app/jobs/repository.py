@@ -23,6 +23,11 @@ class JobRepository:
             data = json.load(f)
             return JobRecord.model_validate(data)
 
+    def delete(self, job_id: str) -> None:
+        path = self._get_metadata_path(job_id)
+        if path.exists():
+            path.unlink()
+
     def list_all(self) -> List[JobRecord]:
         jobs = []
         jobs_dir = settings.jobs_dir

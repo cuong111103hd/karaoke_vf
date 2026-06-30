@@ -30,7 +30,7 @@ async def test_live_chunk_files_api(tmp_path, monkeypatch) -> None:
 
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-        with patch("app.jobs.live_manager.start_background_task"):
+        with patch("app.services.capacity_controller.capacity_controller.submit"):
             res = await client.post("/api/live-jobs", json={
                 "youtube_url": "https://youtube.com/watch?v=123"
             })

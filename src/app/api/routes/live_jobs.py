@@ -10,8 +10,14 @@ router = APIRouter(prefix="/live-jobs", tags=["live-jobs"])
 
 @router.post("", response_model=LiveJobResponse, status_code=status.HTTP_201_CREATED)
 async def create_live_job(request: LiveJobCreateRequest) -> LiveJobResponse:
+    from app.services.capacity_controller import QueueFullError
     try:
         return live_job_manager.create_live_job(request)
+    except QueueFullError:
+        raise HTTPException(
+            status_code=429,
+            detail="Separation queue is full. Please try again later."
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

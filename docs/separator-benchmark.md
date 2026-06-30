@@ -22,24 +22,40 @@ uv run python scripts/benchmark_separators.py \
 
 Input: 10-second, stereo, 44.1 kHz sine-wave fixture. These figures validate performance measurement only; they do not measure musical separation quality.
 
-## CPU baseline
+## Concurrent Sweep Baseline
 
-| Engine/model | p50 | p95 | p50 RTF | Peak process-tree RSS | Average CPU |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Demucs `htdemucs` | 8.77 s | 8.91 s | 0.877 | 1,441 MB | ~170% |
-| MDX `UVR_MDXNET_KARA_2.onnx`, overlap 0.25 | 4.67 s | 5.21 s | 0.467 | 2,635 MB | ~650% |
+Here are the concurrency test results comparing Demucs and MDX ONNX under 1 and 2 parallel jobs (10s audio duration):
 
-MDX was about 1.9 times faster on this window, but used about 1.8 times the peak RSS and consumed six to seven logical CPUs. `OMP_NUM_THREADS=2` does not constrain the ONNX Runtime thread pool used by this model.
+| Engine / Model | Concurrency | Wall Clock | Throughput | p50 Latency | Peak process-tree RSS | Avg CPU |
+| --- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Demucs** (`htdemucs`) | 1 | 6.56 s | 548.6 jobs/hr | 6.56 s | 1,426 MB | 443% |
+| **Demucs** (`htdemucs`) | 2 | 9.92 s | 726.1 jobs/hr | 9.89 s | 2,710 MB | 935% |
+| **MDX ONNX** (`UVR_MDXNET_KARA_2.onnx`) | 1 | 6.35 s | 566.6 jobs/hr | 6.35 s | 2,667 MB | 645% |
+| **MDX ONNX** (`UVR_MDXNET_KARA_2.onnx`) | 2 | 8.52 s | 845.0 jobs/hr | 8.41 s | 4,403 MB | 1204% |
 
-## MDX overlap comparison
+### Observations:
+- **Throughput**: MDX ONNX shows **16% higher throughput** at Concurrency 2 than Demucs.
+- **Resource Scaling**:
+  - MDX ONNX memory grows by **~1.7 GB** per additional concurrent job, reaching **4.40 GB** at Concurrency 2.
+  - Demucs memory grows by **~1.3 GB** per additional concurrent job, reaching **2.71 GB** at Concurrency 2.
+- **CPU Demand**: MDX ONNX utilizes a high number of threads natively on CPU, reaching ~1200% (12 cores) at Concurrency 2, whereas Demucs reaches ~935% (9 cores).
 
-| Internal overlap | p50 | p95 | Peak process-tree RSS |
-| ---: | ---: | ---: | ---: |
-| 0.10 | 4.86 s | 5.36 s | 2,627 MB |
-| 0.25 | 4.67 s | 5.21 s | 2,635 MB |
-| 0.50 | 6.17 s | 6.83 s | 2,619 MB |
+## Capacity Tuning Matrix
 
-On this short synthetic input, overlap 0.25 was the fastest measured setting. The difference between 0.10 and 0.25 is small enough that a longer music corpus is required before choosing between them. Overlap 0.50 adds clear compute cost without reducing memory.
+To maximize server stability and avoid Out-Of-Memory (OOM) failures under concurrent requests, we enforce shared capacity-aware admission control.
+
+| Environment | Max Concurrent Jobs | Expected Peak RAM (Demucs) | Expected Peak RAM (MDX ONNX) | Recommended Default Engine |
+| :--- | :---: | :---: | :---: | :---: |
+| **Small Server (4GB RAM, 4 Cores)** | 1 | ~1.5 GB | ~2.7 GB | `demucs` (Safe) |
+| **Medium Server (8GB RAM, 8 Cores)** | 2 | ~2.8 GB | ~4.5 GB | `demucs` or `mdx_onnx` |
+| **Large Server (16GB RAM, 16 Cores)** | 4 | ~5.4 GB | ~7.8 GB | `mdx_onnx` (High speed) |
+
+## Recommended Deployment Profile
+
+- **Default Engine**: `demucs` (htdemucs)
+- **Alternate Engine**: `mdx_onnx` (UVR_MDXNET_KARA_2.onnx), configurable behind env `SEPARATION_ENGINE`.
+- **Max Concurrent Jobs**: Defaults to `1`. Should be scaled based on available RAM (ensure at least **2.5 GB RAM per concurrent slot** for Demucs, and **3.5 GB RAM per concurrent slot** for MDX ONNX).
+- **Queue Behavior**: Bounded by `MAX_QUEUE_SIZE` (default: 50). Requests exceeding this limit receive an HTTP 429 response.
 
 ## Workflow verification
 

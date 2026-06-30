@@ -41,7 +41,7 @@ async def test_live_jobs_api_endpoints(tmp_path, monkeypatch) -> None:
         mock_engine.return_value.model_name = "UVR_MDXNET_KARA_2.onnx"
         mock_engine.return_value.engine_name = "mdx_onnx"
         try:
-            with patch("app.jobs.live_manager.start_background_task") as mock_start:
+            with patch("app.services.capacity_controller.capacity_controller.submit") as mock_submit:
                 response = await client.post("/api/live-jobs", json={
                     "youtube_url": "https://youtube.com/watch?v=123",
                     "chunk_duration": 30.0,
@@ -53,20 +53,20 @@ async def test_live_jobs_api_endpoints(tmp_path, monkeypatch) -> None:
                 data = response.json()
                 job_id = data["job_id"]
                 assert data["youtube_url"] == "https://youtube.com/watch?v=123"
-                assert data["status"] == "starting"
+                assert data["status"] == "queued"
                 assert data["manifest_path"].endswith(f"{job_id}/live/live_manifest.json")
                 assert data["chunk_duration"] == 30.0
                 assert data["overlap"] == 2.0
                 assert data["separator_engine"] == "mdx_onnx"
                 assert data["model_name"] == "UVR_MDXNET_KARA_2.onnx"
-                mock_start.assert_called_once()
+                mock_submit.assert_called_once()
 
                 response = await client.get(f"/api/live-jobs/{job_id}")
                 assert response.status_code == 200
                 data = response.json()
                 assert data["job_id"] == job_id
                 assert data["manifest_path"].endswith(f"{job_id}/live/live_manifest.json")
-                assert data["status"] in ("starting", "active", "completed")
+                assert data["status"] in ("queued", "active", "completed")
                 assert data["chunks"] == []
 
                 response = await client.get("/api/live-jobs")

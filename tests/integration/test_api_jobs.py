@@ -41,14 +41,14 @@ async def test_api_jobs_endpoints(tmp_path, monkeypatch) -> None:
 
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-        with patch("app.api.routes.jobs.start_background_task") as mock_start:
+        with patch("app.services.capacity_controller.capacity_controller.submit") as mock_submit:
             response = await client.post("/api/jobs", json={"youtube_url": "https://youtube.com/watch?v=123"})
             assert response.status_code == 201
             data = response.json()
             job_id = data["job_id"]
             assert data["youtube_url"] == "https://youtube.com/watch?v=123"
             assert data["status"] == "queued"
-            mock_start.assert_called_once()
+            mock_submit.assert_called_once()
 
             response = await client.get(f"/api/jobs/{job_id}")
             assert response.status_code == 200

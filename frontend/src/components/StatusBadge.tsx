@@ -8,9 +8,9 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   let badgeClass = 'badge-pending';
   const label = status.toUpperCase();
 
-  if (status === 'starting') {
+  if (status === 'starting' || status === 'queued') {
     badgeClass = 'badge-starting';
-  } else if (status === 'active' || status === 'processing') {
+  } else if (status === 'active' || status === 'processing' || status === 'running') {
     badgeClass = 'badge-active animate-pulse';
   } else if (status === 'completed' || status === 'ready') {
     badgeClass = 'badge-completed';

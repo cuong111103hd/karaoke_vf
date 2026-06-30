@@ -12,7 +12,7 @@ export interface LiveChunk {
 export interface LiveJob {
   job_id: string;
   youtube_url: string;
-  status: 'starting' | 'active' | 'completed' | 'failed';
+  status: 'starting' | 'queued' | 'active' | 'completed' | 'failed';
   created_at: string;
   manifest_path?: string;
   chunk_duration: number;

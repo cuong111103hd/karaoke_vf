@@ -52,6 +52,25 @@ uv run python scripts/benchmark_separators.py \
   --stream-overlap 1
 ```
 
+To answer the live-stream question “how many concurrent jobs stay faster than playback?”, run the live-capacity benchmark. It trims the input WAV to the requested chunk duration, runs concurrency sweeps, and reports the first concurrency level whose p95 processing time falls behind the playback window (`chunk_duration - overlap`):
+
+```bash
+export SEPARATION_MODEL_DIR=data/models
+
+OMP_NUM_THREADS=2 \
+MKL_NUM_THREADS=2 \
+OPENBLAS_NUM_THREADS=2 \
+NUMEXPR_NUM_THREADS=2 \
+uv run python scripts/benchmark_live_capacity.py \
+  --input path/to/song.wav \
+  --engine both \
+  --chunk-duration 10 \
+  --stream-overlap 0 \
+  --concurrency-levels 1,2,3,4
+```
+
+Use `--safety-factor 0.8` if you want a stricter “keep some buffer before falling behind” threshold instead of the exact realtime line.
+
 Generated fixtures and benchmark outputs are ignored by Git. See `docs/separator-benchmark.md` for the current baseline and interpretation.
 
 ### 4. Export

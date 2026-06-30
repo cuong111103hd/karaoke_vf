@@ -13,9 +13,8 @@ def get_separation_engine(
     """
     Return the configured separation engine instance.
 
-    The optional model name preserves the legacy per-job Demucs model
-    selection. MDX model selection remains explicit server configuration.
-    Instances are cached by engine and effective model.
+    The optional model name supports per-job model selection for both Demucs
+    and MDX ONNX. Instances are cached by engine and effective model.
     """
     engine_type = (engine_name or settings.SEPARATION_ENGINE).lower()
 
@@ -33,9 +32,7 @@ def get_separation_engine(
     elif engine_type == "mdx_onnx":
         # Import lazily to defer audio-separator/onnx dependencies
         from app.services.separation.engines.mdx_onnx import MdxOnnxEngine
-        # MDX is configured server-side. Legacy per-job model_name values are
-        # Demucs-specific and must not accidentally replace the ONNX model.
-        effective_model = settings.SEPARATION_MODEL or "UVR_MDXNET_KARA_2.onnx"
+        effective_model = model_name or settings.SEPARATION_MODEL or "UVR_MDXNET_KARA_2.onnx"
         cache_key = (engine_type, effective_model)
         if cache_key in _instances:
             return _instances[cache_key]

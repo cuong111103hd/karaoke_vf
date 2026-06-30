@@ -14,6 +14,14 @@ from app.services.live.models import LiveManifest, LiveStreamStatus, LiveChunkMe
 def manager() -> LiveJobManager:
     return LiveJobManager()
 
+@pytest.fixture(autouse=True)
+def mock_capacity_controller():
+    with patch("app.services.capacity_controller.capacity_controller") as mock:
+        def dummy_submit(job_id, run, on_queued, on_running):
+            on_queued()
+        mock.submit.side_effect = dummy_submit
+        yield mock
+
 def test_create_live_job(manager) -> None:
     req = LiveJobCreateRequest(
         youtube_url="https://youtube.com/watch?v=abc",
@@ -26,12 +34,12 @@ def test_create_live_job(manager) -> None:
     )
     
     with patch("app.jobs.live_manager.get_live_manifest_path", return_value=Path("/dummy/manifest.json")), \
-         patch("app.jobs.live_manager.start_background_task") as mock_start:
+         patch("app.services.capacity_controller.capacity_controller.submit") as mock_submit:
         res = manager.create_live_job(req)
         
         assert res.job_id is not None
         assert res.youtube_url == "https://youtube.com/watch?v=abc"
-        assert res.status == "starting"
+        assert res.status == "queued"
         assert res.manifest_path == "/dummy/manifest.json"
         assert res.chunk_duration == 30.0
         assert res.overlap == 1.0
@@ -40,7 +48,7 @@ def test_create_live_job(manager) -> None:
         assert res.model_name == "htdemucs"
         assert res.output_format == "wav"
         
-        mock_start.assert_called_once()
+        mock_submit.assert_called_once()
 
 def test_get_live_job_not_found(manager) -> None:
     assert manager.get_live_job("nonexistent-id") is None
@@ -50,14 +58,14 @@ def test_get_live_job_starting_fallback(manager) -> None:
         youtube_url="https://youtube.com/watch?v=abc"
     )
     with patch("app.jobs.live_manager.get_live_manifest_path", return_value=Path("/dummy/manifest.json")), \
-         patch("app.jobs.live_manager.start_background_task"):
+         patch("app.services.capacity_controller.capacity_controller.submit"):
         res = manager.create_live_job(req)
         
         # Retrieve before manifest exists
         job = manager.get_live_job(res.job_id)
         assert job is not None
         assert job.job_id == res.job_id
-        assert job.status == "starting"
+        assert job.status == "queued"
         assert job.manifest_path == "/dummy/manifest.json"
         assert job.chunks == []
 
@@ -68,7 +76,7 @@ def test_get_live_job_active_manifest(manager, tmp_path) -> None:
     manifest_file = tmp_path / "live_manifest.json"
     
     with patch("app.jobs.live_manager.get_live_manifest_path", return_value=manifest_file), \
-         patch("app.jobs.live_manager.start_background_task"):
+         patch("app.services.capacity_controller.capacity_controller.submit"):
         res = manager.create_live_job(req)
         
         # Write dummy manifest
@@ -110,7 +118,7 @@ def test_background_task_failure(manager) -> None:
         youtube_url="https://youtube.com/watch?v=abc"
     )
     with patch("app.jobs.live_manager.get_live_manifest_path", return_value=Path("/dummy/manifest.json")), \
-         patch("app.jobs.live_manager.start_background_task"):
+         patch("app.services.capacity_controller.capacity_controller.submit"):
         res = manager.create_live_job(req)
         
         # Run background task, force an exception in run_live_separation
@@ -147,7 +155,7 @@ def test_create_live_job_with_mdx_engine(manager) -> None:
 
     with patch("app.jobs.live_manager.get_live_manifest_path", return_value=Path("/dummy/manifest.json")), \
          patch("app.jobs.live_manager.get_separation_engine", return_value=mdx_engine) as mock_get_engine, \
-         patch("app.jobs.live_manager.start_background_task"):
+         patch("app.services.capacity_controller.capacity_controller.submit"):
         res = manager.create_live_job(req)
 
     mock_get_engine.assert_called_once_with("UVR_MDXNET_KARA_2.onnx", "mdx_onnx")

@@ -23,6 +23,9 @@ class Settings:
         self.MDX_OVERLAP = float(os.getenv("MDX_OVERLAP", "0.25"))
         self.MDX_BATCH_SIZE = int(os.getenv("MDX_BATCH_SIZE", "1"))
 
+        self.MAX_CONCURRENT_SEPARATION_JOBS = int(os.getenv("MAX_CONCURRENT_SEPARATION_JOBS", "1"))
+        self.MAX_QUEUE_SIZE = int(os.getenv("MAX_QUEUE_SIZE", "50"))
+
         self.HOST = os.getenv("HOST", "127.0.0.1")
         self.PORT = int(os.getenv("PORT", "8000"))
 
@@ -34,6 +37,10 @@ class Settings:
             raise ValueError("MDX_OVERLAP must be greater than zero and smaller than one.")
         if self.MDX_BATCH_SIZE <= 0:
             raise ValueError("MDX_BATCH_SIZE must be greater than zero.")
+        if self.MAX_CONCURRENT_SEPARATION_JOBS <= 0:
+            raise ValueError("MAX_CONCURRENT_SEPARATION_JOBS must be greater than zero.")
+        if self.MAX_QUEUE_SIZE <= 0:
+            raise ValueError("MAX_QUEUE_SIZE must be greater than zero.")
 
     @property
     def jobs_dir(self) -> Path:

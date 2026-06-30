@@ -57,15 +57,15 @@ def test_factory_demucs_model_override_has_separate_cache_entry(monkeypatch) -> 
     assert fine_tuned_engine.model_name == "htdemucs_ft"
     assert default_engine is not fine_tuned_engine
 
-def test_factory_ignores_legacy_demucs_override_for_mdx(monkeypatch) -> None:
+def test_factory_allows_per_job_mdx_model_override(monkeypatch) -> None:
     monkeypatch.setattr(settings, "SEPARATION_ENGINE", "mdx_onnx")
     monkeypatch.setattr(settings, "SEPARATION_MODEL", "UVR_MDXNET_KARA_2.onnx")
 
     mock_mdx_class = MagicMock()
     with patch("app.services.separation.engines.mdx_onnx.MdxOnnxEngine", mock_mdx_class):
-        get_separation_engine("htdemucs")
+        get_separation_engine("custom_mdx.onnx")
 
-    assert mock_mdx_class.call_args.kwargs["model_name"] == "UVR_MDXNET_KARA_2.onnx"
+    assert mock_mdx_class.call_args.kwargs["model_name"] == "custom_mdx.onnx"
 
 def test_factory_invalid_engine(monkeypatch) -> None:
     monkeypatch.setattr(settings, "SEPARATION_ENGINE", "unsupported_engine")

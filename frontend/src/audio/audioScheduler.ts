@@ -9,7 +9,7 @@ export function determineNextAction(params: {
   lastChunkEndTime: number | null; // AudioContext time when the last scheduled chunk ends
   decodedChunks: Map<number, { duration: number }>;
   overlap: number;
-  jobStatus: 'starting' | 'active' | 'completed' | 'failed' | 'idle';
+  jobStatus: 'starting' | 'queued' | 'active' | 'completed' | 'failed' | 'idle';
   hasMoreChunks: boolean; // whether there are more chunks expected in the future
   lookahead: number; // small delay (in seconds) to schedule future playbacks reliably
 }): SchedulerDecision {
@@ -38,7 +38,7 @@ export function determineNextAction(params: {
   if (!chunk) {
     // Chunk is NOT decoded yet.
     // Are there more chunks expected?
-    if (hasMoreChunks || jobStatus === 'starting' || jobStatus === 'active') {
+    if (hasMoreChunks || jobStatus === 'starting' || jobStatus === 'queued' || jobStatus === 'active') {
       return {
         action: 'wait',
         chunkIndex: nextIndex,

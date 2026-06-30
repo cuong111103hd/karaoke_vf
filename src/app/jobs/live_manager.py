@@ -5,7 +5,6 @@ from typing import Dict, List, Optional
 from pathlib import Path
 
 from app.api.schemas import LiveJobCreateRequest, LiveJobResponse, LiveChunkResponse
-from app.jobs.background import start_background_task
 from app.jobs.live_models import LiveJobRecord
 from app.services.live.manifest import read_live_manifest
 from app.services.live.service import run_live_separation
@@ -30,18 +29,18 @@ class LiveJobManager:
                 request.separator_engine,
             )
             effective_model_name = getattr(effective_engine, "model_name", request.model_name)
-            effective_engine_name = request.separator_engine or getattr(
+            effective_engine_name = getattr(
                 effective_engine,
                 "engine_name",
                 None,
-            )
+            ) or request.separator_engine
             options = LiveOptions(
                 youtube_url=request.youtube_url,
                 chunk_duration=request.chunk_duration,
                 overlap=request.overlap,
                 max_chunks=request.max_chunks,
-                separator_engine=request.separator_engine,
-                model_name=request.model_name,
+                separator_engine=effective_engine_name,
+                model_name=effective_model_name,
                 output_format=request.output_format
             )
         except ValueError as e:
@@ -52,7 +51,7 @@ class LiveJobManager:
             youtube_url=request.youtube_url,
             created_at=datetime.utcnow().isoformat() + "Z",
             manifest_path=str(manifest_path),
-            status="starting",
+            status="queued",
             chunk_duration=request.chunk_duration,
             overlap=request.overlap,
             max_chunks=request.max_chunks,
@@ -62,12 +61,17 @@ class LiveJobManager:
         )
         self._jobs[job_id] = record
 
-        start_background_task(
-            self._run_separation_task,
-            job_id,
-            options,
-            name=f"live-job-{job_id}",
-        )
+        from app.services.capacity_controller import capacity_controller
+        try:
+            capacity_controller.submit(
+                job_id=job_id,
+                run=lambda: self._run_separation_task(job_id, options),
+                on_queued=lambda: self._set_job_status(job_id, "queued"),
+                on_running=lambda: self._set_job_status(job_id, "active"),
+            )
+        except Exception:
+            self._jobs.pop(job_id, None)
+            raise
 
         return LiveJobResponse(
             job_id=job_id,
@@ -158,10 +162,14 @@ class LiveJobManager:
                 res.append(job_status)
         return res
 
-    def _run_separation_task(self, job_id: str, options: LiveOptions) -> None:
+    def _set_job_status(self, job_id: str, status: str) -> None:
         if job_id in self._jobs:
-            self._jobs[job_id].status = "active"
-            
+            self._jobs[job_id].status = status
+
+    def _run_separation_task(self, job_id: str, options: LiveOptions) -> None:
+        if job_id not in self._jobs:
+            return
+
         try:
             run_live_separation(options, job_id=job_id)
             if job_id in self._jobs:

@@ -65,3 +65,6 @@ class JobManager:
 
     def list_jobs(self) -> List[JobRecord]:
         return self.repo.list_all()
+
+    def delete_job(self, job_id: str) -> None:
+        self.repo.delete(job_id)

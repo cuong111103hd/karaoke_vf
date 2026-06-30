@@ -4,7 +4,7 @@ import json
 import logging
 import math
 import os
-import resource
+import shutil
 import struct
 import sys
 import threading
@@ -43,6 +43,51 @@ def get_audio_duration(path: Path) -> float:
         return wav_file.getnframes() / float(wav_file.getframerate())
 
 
+def create_wav_excerpt(input_path: Path, output_path: Path, duration_seconds: float) -> Path:
+    if duration_seconds <= 0:
+        raise ValueError("duration_seconds must be greater than zero")
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with wave.open(str(input_path), "rb") as src:
+        sample_rate = src.getframerate()
+        channels = src.getnchannels()
+        sample_width = src.getsampwidth()
+        frame_limit = min(src.getnframes(), int(duration_seconds * sample_rate))
+        frames = src.readframes(frame_limit)
+
+    with wave.open(str(output_path), "wb") as dst:
+        dst.setnchannels(channels)
+        dst.setsampwidth(sample_width)
+        dst.setframerate(sample_rate)
+        dst.writeframes(frames)
+
+    return output_path
+
+
+def prepare_input_for_benchmark(
+    input_path: Optional[Path],
+    requested_duration: Optional[float],
+    workspace_dir: Path,
+) -> Path:
+    if input_path is None:
+        generated_path = workspace_dir / "benchmark_generated.wav"
+        generate_test_wav(generated_path, duration_seconds=requested_duration or 10.0)
+        return generated_path
+
+    if requested_duration is None:
+        return input_path
+
+    input_duration = get_audio_duration(input_path)
+    if input_duration <= requested_duration + 1e-6:
+        copied_path = workspace_dir / input_path.name
+        copied_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(input_path, copied_path)
+        return copied_path
+
+    excerpt_path = workspace_dir / f"{input_path.stem}_{requested_duration:.2f}s.wav"
+    return create_wav_excerpt(input_path, excerpt_path, requested_duration)
+
+
 def calculate_percentile(data: List[float], percentile: float) -> float:
     if not data:
         return 0.0
@@ -56,13 +101,81 @@ def calculate_percentile(data: List[float], percentile: float) -> float:
     return sorted_data[lower] * (1 - fraction) + sorted_data[upper] * fraction
 
 
+def effective_playback_window(chunk_duration: float, stream_overlap: float) -> float:
+    playback_window = chunk_duration - stream_overlap
+    if playback_window <= 0:
+        raise ValueError("stream_overlap must be smaller than chunk_duration")
+    return playback_window
+
+
+def evaluate_live_capacity(
+    concurrency_sweep: List[Dict[str, Any]],
+    chunk_duration: float,
+    stream_overlap: float,
+    safety_factor: float = 1.0,
+) -> Dict[str, Any]:
+    if safety_factor <= 0:
+        raise ValueError("safety_factor must be greater than zero")
+
+    playback_window = effective_playback_window(chunk_duration, stream_overlap)
+    safe_limit = playback_window * safety_factor
+
+    levels: List[Dict[str, Any]] = []
+    first_unsafe: Optional[int] = None
+    max_stable: Optional[int] = None
+
+    for level in sorted(concurrency_sweep, key=lambda run: run["concurrency"]):
+        p95 = level.get("p95_elapsed_seconds", 0.0)
+        p50 = level.get("p50_elapsed_seconds", 0.0)
+        max_elapsed = level.get("max_elapsed_seconds", p95)
+        failed_runs = level.get("failed_runs", 0)
+        is_safe = failed_runs == 0 and p95 <= safe_limit
+
+        assessed = {
+            "concurrency": level["concurrency"],
+            "p50_elapsed_seconds": p50,
+            "p95_elapsed_seconds": p95,
+            "max_elapsed_seconds": max_elapsed,
+            "failed_runs": failed_runs,
+            "playback_window_seconds": playback_window,
+            "safe_limit_seconds": safe_limit,
+            "p95_vs_playback_ratio": (p95 / playback_window) if playback_window > 0 else 0.0,
+            "behind_playback_by_seconds": max(0.0, p95 - playback_window),
+            "safe_for_live_stream": is_safe,
+        }
+        levels.append(assessed)
+
+        if is_safe:
+            max_stable = level["concurrency"]
+        elif first_unsafe is None:
+            first_unsafe = level["concurrency"]
+
+    return {
+        "chunk_duration_seconds": chunk_duration,
+        "stream_overlap_seconds": stream_overlap,
+        "playback_window_seconds": playback_window,
+        "safety_factor": safety_factor,
+        "safe_limit_seconds": safe_limit,
+        "max_stable_concurrency": max_stable,
+        "first_unsafe_concurrency": first_unsafe,
+        "levels": levels,
+    }
+
+
 def _children_of(pid: int) -> Iterable[int]:
-    children_file = Path(f"/proc/{pid}/task/{pid}/children")
-    try:
-        contents = children_file.read_text().strip()
-    except (FileNotFoundError, PermissionError, ProcessLookupError):
+    children = []
+    task_dir = Path(f"/proc/{pid}/task")
+    if not task_dir.is_dir():
         return []
-    return [int(value) for value in contents.split()] if contents else []
+    for t_dir in task_dir.iterdir():
+        children_file = t_dir / "children"
+        try:
+            contents = children_file.read_text().strip()
+            if contents:
+                children.extend(int(value) for value in contents.split())
+        except (FileNotFoundError, PermissionError, ProcessLookupError):
+            pass
+    return children
 
 
 def _process_tree(root_pid: int) -> Set[int]:
@@ -186,7 +299,7 @@ def create_engine(
     raise ValueError(f"Unknown engine: {engine_name}")
 
 
-def run_benchmark_for_engine(
+def run_benchmark_sequential_for_engine(
     engine_name: str,
     model_name: str,
     input_path: Path,
@@ -196,7 +309,7 @@ def run_benchmark_for_engine(
     mdx_segment_size: int,
     mdx_batch_size: int,
 ) -> Dict[str, Any]:
-    logger.info("Starting benchmark: engine=%s model=%s", engine_name, model_name)
+    logger.info("Starting sequential benchmark: engine=%s model=%s", engine_name, model_name)
     audio_duration = get_audio_duration(input_path)
     engine = create_engine(
         engine_name, model_name, mdx_overlap, mdx_segment_size, mdx_batch_size
@@ -276,6 +389,109 @@ def run_benchmark_for_engine(
     }
 
 
+def run_benchmark_concurrency_for_engine(
+    engine_name: str,
+    model_name: str,
+    input_path: Path,
+    output_dir: Path,
+    concurrency_levels: List[int],
+    mdx_overlap: float,
+    mdx_segment_size: int,
+    mdx_batch_size: int,
+) -> Dict[str, Any]:
+    logger.info("Starting concurrent benchmark sweep: engine=%s model=%s levels=%s", engine_name, model_name, concurrency_levels)
+    audio_duration = get_audio_duration(input_path)
+
+    levels_results: List[Dict[str, Any]] = []
+
+    for concurrency in concurrency_levels:
+        logger.info("Setting up concurrency test with %d parallel tasks...", concurrency)
+
+        # 1. Instantiate separate engine instances to prevent shared property race conditions
+        engines = []
+        for i in range(concurrency):
+            eng = create_engine(engine_name, model_name, mdx_overlap, mdx_segment_size, mdx_batch_size)
+            engines.append(eng)
+
+        # 2. Pre-load models (warm execution baseline)
+        init_times = []
+        for idx, eng in enumerate(engines):
+            if engine_name == "mdx_onnx":
+                _, elapsed, _ = measure_call(eng.load_model)
+                init_times.append(elapsed)
+
+        # 3. Create parallel tasks
+        threads: List[threading.Thread] = []
+        errors: List[Optional[str]] = [None] * concurrency
+        thread_elapsed: List[float] = [0.0] * concurrency
+
+        def run_thread(t_index: int, engine_instance):
+            t_output_dir = output_dir / f"concurrent_{engine_name}_{model_name}_c{concurrency}_t{t_index}"
+            t_start = time.perf_counter()
+            try:
+                engine_instance.separate(input_path, t_output_dir)
+            except Exception as e:
+                errors[t_index] = str(e)
+                logger.error("Task %d failed: %s", t_index, e)
+            finally:
+                thread_elapsed[t_index] = time.perf_counter() - t_start
+
+        for i in range(concurrency):
+            thread = threading.Thread(
+                target=run_thread,
+                args=(i, engines[i]),
+                name=f"bench-worker-c{concurrency}-{i}"
+            )
+            threads.append(thread)
+
+        # 4. Measure parallel run
+        sampler = ProcessTreeSampler()
+        sampler.start()
+        wall_start = time.perf_counter()
+
+        for thread in threads:
+            thread.start()
+
+        for thread in threads:
+            thread.join()
+
+        wall_elapsed = time.perf_counter() - wall_start
+        resources = sampler.stop(wall_elapsed)
+
+        # 5. Aggregate metrics
+        successful_runs = sum(1 for err in errors if err is None)
+        failed_runs = concurrency - successful_runs
+        throughput_jobs_per_hour = (successful_runs / wall_elapsed) * 3600 if wall_elapsed > 0 else 0.0
+
+        level_run = {
+            "concurrency": concurrency,
+            "wall_clock_seconds": wall_elapsed,
+            "throughput_jobs_per_hour": throughput_jobs_per_hour,
+            "p50_elapsed_seconds": calculate_percentile([t for i, t in enumerate(thread_elapsed) if errors[i] is None], 50),
+            "p95_elapsed_seconds": calculate_percentile([t for i, t in enumerate(thread_elapsed) if errors[i] is None], 95),
+            "max_elapsed_seconds": max([t for i, t in enumerate(thread_elapsed) if errors[i] is None], default=0.0),
+            "p50_rtf": calculate_percentile([t / audio_duration for i, t in enumerate(thread_elapsed) if errors[i] is None], 50),
+            "p95_rtf": calculate_percentile([t / audio_duration for i, t in enumerate(thread_elapsed) if errors[i] is None], 95),
+            "errors": [err for err in errors if err is not None],
+            "successful_runs": successful_runs,
+            "failed_runs": failed_runs,
+            "model_initialization_seconds_avg": sum(init_times) / len(init_times) if init_times else 0.0,
+            **resources
+        }
+
+        logger.info(
+            "Concurrency level %d: wall_clock=%.2fs throughput=%.1f jobs/hr peak_RSS=%.1fMB avg_CPU=%.0f%% failures=%d",
+            concurrency, wall_elapsed, throughput_jobs_per_hour, level_run["peak_tree_rss_mb"], level_run["average_cpu_percent"], failed_runs
+        )
+        levels_results.append(level_run)
+
+    return {
+        "engine": engine_name,
+        "model": model_name,
+        "concurrency_sweep": levels_results
+    }
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Benchmark Demucs and MDX ONNX separators")
     parser.add_argument("--input", help="Local WAV input; generated sine fixture if omitted")
@@ -290,6 +506,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--mdx-overlap", type=float, default=0.25)
     parser.add_argument("--mdx-segment-size", type=int, default=256)
     parser.add_argument("--mdx-batch-size", type=int, default=1)
+    parser.add_argument(
+        "--mode",
+        choices=["sequential", "concurrent", "both"],
+        default="concurrent",
+        help="Run benchmark iterations sequentially, in concurrency sweeps, or both."
+    )
+    parser.add_argument(
+        "--concurrency-levels",
+        default="1,2,3,4",
+        help="Comma-separated concurrency levels to test in concurrent mode (e.g. 1,2,3,4)"
+    )
     return parser.parse_args()
 
 
@@ -298,14 +525,18 @@ def main() -> None:
     if args.iterations <= 0:
         raise ValueError("--iterations must be greater than zero")
 
-    input_path = Path(args.input) if args.input else Path("data/benchmark_dummy.wav")
-    if args.input and not input_path.is_file():
-        raise FileNotFoundError(f"Input WAV does not exist: {input_path}")
-    if not args.input:
-        generate_test_wav(input_path)
+    concurrency_levels = [int(val.strip()) for val in args.concurrency_levels.split(",") if val.strip()]
 
+    requested_input_path = Path(args.input) if args.input else None
+    if requested_input_path and not requested_input_path.is_file():
+        raise FileNotFoundError(f"Input WAV does not exist: {requested_input_path}")
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+    input_path = prepare_input_for_benchmark(
+        requested_input_path,
+        args.chunk_duration,
+        output_dir / "inputs",
+    )
     report_path = Path(args.report) if args.report else output_dir / "benchmark_report.json"
 
     engines = []
@@ -334,36 +565,70 @@ def main() -> None:
             )
         },
         "memory_measurement": "Peak sampled RSS for benchmark process plus descendants from /proc",
-        "engines": [],
+        "engines_sequential": [],
+        "engines_concurrent": []
     }
 
-    for engine_name, model_name in engines:
-        report["engines"].append(
-            run_benchmark_for_engine(
-                engine_name=engine_name,
-                model_name=model_name,
-                input_path=input_path,
-                output_dir=output_dir,
-                iterations=args.iterations,
-                mdx_overlap=args.mdx_overlap,
-                mdx_segment_size=args.mdx_segment_size,
-                mdx_batch_size=args.mdx_batch_size,
+    if args.mode in ("sequential", "both"):
+        for engine_name, model_name in engines:
+            report["engines_sequential"].append(
+                run_benchmark_sequential_for_engine(
+                    engine_name=engine_name,
+                    model_name=model_name,
+                    input_path=input_path,
+                    output_dir=output_dir,
+                    iterations=args.iterations,
+                    mdx_overlap=args.mdx_overlap,
+                    mdx_segment_size=args.mdx_segment_size,
+                    mdx_batch_size=args.mdx_batch_size,
+                )
             )
-        )
+
+    if args.mode in ("concurrent", "both"):
+        for engine_name, model_name in engines:
+            report["engines_concurrent"].append(
+                run_benchmark_concurrency_for_engine(
+                    engine_name=engine_name,
+                    model_name=model_name,
+                    input_path=input_path,
+                    output_dir=output_dir,
+                    concurrency_levels=concurrency_levels,
+                    mdx_overlap=args.mdx_overlap,
+                    mdx_segment_size=args.mdx_segment_size,
+                    mdx_batch_size=args.mdx_batch_size,
+                )
+            )
 
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(json.dumps(report, indent=2) + "\n")
 
-    print(f"Benchmark report: {report_path}")
-    for result in report["engines"]:
-        summary = result["summary"]
-        print(
-            f"{result['engine']}:{result['model']} "
-            f"p50={summary['p50_elapsed_seconds']:.2f}s "
-            f"p95={summary['p95_elapsed_seconds']:.2f}s "
-            f"p50_RTF={summary['p50_rtf']:.3f} "
-            f"peak_tree_RSS={summary['max_peak_tree_rss_mb']:.1f}MB"
-        )
+    print(f"\nBenchmark report written to: {report_path}")
+    
+    if report["engines_sequential"]:
+        print("\n--- Sequential Benchmark Summary ---")
+        for result in report["engines_sequential"]:
+            summary = result["summary"]
+            print(
+                f"{result['engine']}:{result['model']} "
+                f"p50={summary['p50_elapsed_seconds']:.2f}s "
+                f"p95={summary['p95_elapsed_seconds']:.2f}s "
+                f"p50_RTF={summary['p50_rtf']:.3f} "
+                f"peak_tree_RSS={summary['max_peak_tree_rss_mb']:.1f}MB"
+            )
+
+    if report["engines_concurrent"]:
+        print("\n--- Concurrent Sweep Benchmark Summary ---")
+        for result in report["engines_concurrent"]:
+            print(f"Engine: {result['engine']}, Model: {result['model']}")
+            for run in result["concurrency_sweep"]:
+                print(
+                    f"  Concurrency {run['concurrency']} -> "
+                    f"Wall clock: {run['wall_clock_seconds']:.2f}s | "
+                    f"Throughput: {run['throughput_jobs_per_hour']:.1f} jobs/hr | "
+                    f"p50 Latency: {run['p50_elapsed_seconds']:.2f}s | "
+                    f"Peak RSS: {run['peak_tree_rss_mb']:.1f}MB | "
+                    f"Avg CPU: {run['average_cpu_percent']:.0f}%"
+                )
 
 
 if __name__ == "__main__":
