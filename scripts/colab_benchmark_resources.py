@@ -187,6 +187,10 @@ def summarize_gpu_samples(samples: List[Dict[str, Any]], fallback: Optional[Dict
     }
 
 
+def _stage_p95(level: Dict[str, Any], key: str) -> float:
+    return float(level.get("stage_breakdown", {}).get(key, {}).get("p95_seconds", 0.0))
+
+
 def main() -> None:
     args = parse_args()
     if args.chunk_duration <= 0:
@@ -267,6 +271,11 @@ def main() -> None:
                 f"peak RSS={level['peak_tree_rss_mb']:.1f}MB | "
                 f"peak GPU mem={primary_gpu.get('peak_memory_used_mb', 0):.1f}MB | "
                 f"avg GPU util={primary_gpu.get('average_gpu_utilization_percent', 0):.0f}%"
+            )
+            print(
+                f"    p95 stages: inference={_stage_p95(level, 'audio_processing_seconds'):.2f}s | "
+                f"engine_wav={_stage_p95(level, 'wav_finalize_seconds'):.2f}s | "
+                f"total={_stage_p95(level, 'total_seconds'):.2f}s"
             )
 
         live_summary = evaluate_live_capacity(

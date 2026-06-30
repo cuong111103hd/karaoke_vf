@@ -50,19 +50,19 @@
       "concurrency_sweep": [
         {
           "concurrency": 10,
-          "wall_clock_seconds": 58.33454652,
-          "throughput_jobs_per_hour": 617.1300223900327,
-          "first_result_seconds": 57.790363565999996,
-          "p50_elapsed_seconds": 58.14998258950004,
-          "p95_elapsed_seconds": 58.31480132089998,
-          "max_elapsed_seconds": 58.33327069699999,
-          "p50_completion_latency_seconds": 58.151491988500084,
-          "p95_completion_latency_seconds": 58.316130222850234,
-          "max_completion_latency_seconds": 58.33442540800024,
-          "p50_start_delay_seconds": 0.0015142955001010705,
-          "p95_start_delay_seconds": 0.002930446650179876,
-          "p50_rtf": 5.814998258950004,
-          "p95_rtf": 5.8314801320899985,
+          "wall_clock_seconds": 61.90584783400027,
+          "throughput_jobs_per_hour": 581.5282604081852,
+          "first_result_seconds": 61.47075185700032,
+          "p50_elapsed_seconds": 61.685881385500124,
+          "p95_elapsed_seconds": 61.90228197305023,
+          "max_elapsed_seconds": 61.90324305200011,
+          "p50_completion_latency_seconds": 61.68733266950039,
+          "p95_completion_latency_seconds": 61.903815429500625,
+          "max_completion_latency_seconds": 61.905264407000686,
+          "p50_start_delay_seconds": 0.0015912985004433722,
+          "p95_start_delay_seconds": 0.00207705240031828,
+          "p50_rtf": 6.168588138550012,
+          "p95_rtf": 6.190228197305023,
           "errors": [],
           "successful_runs": 10,
           "failed_runs": 0,
@@ -72,21 +72,21 @@
               "job_index": 0,
               "success": true,
               "error": null,
-              "submitted_offset_seconds": 0.0001318310000897327,
-              "started_offset_seconds": 0.001154711000253883,
-              "completed_offset_seconds": 58.33442540800024,
-              "run_duration_seconds": 58.33327069699999,
-              "completion_latency_seconds": 58.33442540800024,
+              "submitted_offset_seconds": 9.299300018028589e-05,
+              "started_offset_seconds": 0.0011604100000113249,
+              "completed_offset_seconds": 61.662550368000666,
+              "run_duration_seconds": 61.661389958000655,
+              "completion_latency_seconds": 61.662550368000666,
               "stage_profile": {
                 "engine": "demucs",
                 "model": "htdemucs",
-                "total_seconds": 58.33309076900014,
-                "subprocess_launch_seconds": 28.31263595900009,
-                "audio_processing_seconds": 34.90679261100013,
-                "wav_finalize_seconds": 23.42629815800001,
+                "total_seconds": 61.66115998800069,
+                "subprocess_launch_seconds": 28.955684851000115,
+                "audio_processing_seconds": 7.69208115299989,
+                "wav_finalize_seconds": 25.013393984000686,
                 "markers": {
-                  "first_output_line_seen": true,
-                  "progress_completion_seen": true
+                  "first_output_offset_seconds": 28.955684851000115,
+                  "progress_completion_offset_seconds": 36.647766004000005
                 }
               }
             },
@@ -94,21 +94,21 @@
               "job_index": 1,
               "success": true,
               "error": null,
-              "submitted_offset_seconds": 0.00026857000011659693,
-              "started_offset_seconds": 0.0015856099998927675,
-              "completed_offset_seconds": 58.17121838000003,
-              "run_duration_seconds": 58.169632770000135,
-              "completion_latency_seconds": 58.17121838000003,
+              "submitted_offset_seconds": 0.00019718800012924476,
+              "started_offset_seconds": 0.0009371360001750872,
+              "completed_offset_seconds": 61.90204445700056,
+              "run_duration_seconds": 61.90110732100038,
+              "completion_latency_seconds": 61.90204445700056,
               "stage_profile": {
                 "engine": "demucs",
                 "model": "htdemucs",
-                "total_seconds": 58.169407104999664,
-                "subprocess_launch_seconds": 27.474578748999647,
-                "audio_processing_seconds": 33.01645574399981,
-                "wav_finalize_seconds": 25.15295136099985,
+                "total_seconds": 61.899730283999816,
+                "subprocess_launch_seconds": 28.609880529000293,
+                "audio_processing_seconds": 7.418372475000069,
+                "wav_finalize_seconds": 25.871477279999453,
                 "markers": {
-                  "first_output_line_seen": true,
-                  "progress_completion_seen": true
+                  "first_output_offset_seconds": 28.609880529000293,
+                  "progress_completion_offset_seconds": 36.02825300400036
                 }
               }
             },
@@ -116,21 +116,21 @@
               "job_index": 2,
               "success": true,
               "error": null,
-              "submitted_offset_seconds": 0.0004087249999429332,
-              "started_offset_seconds": 0.0014331880001918762,
-              "completed_offset_seconds": 58.13176559700014,
-              "run_duration_seconds": 58.13033240899995,
-              "completion_latency_seconds": 58.13176559700014,
+              "submitted_offset_seconds": 0.0002957380002044374,
+              "started_offset_seconds": 0.0013093269999444601,
+              "completed_offset_seconds": 61.56303619600021,
+              "run_duration_seconds": 61.56172686900027,
+              "completion_latency_seconds": 61.56303619600021,
               "stage_profile": {
                 "engine": "demucs",
                 "model": "htdemucs",
-                "total_seconds": 58.130074681000224,
-                "subprocess_launch_seconds": 27.444868885000233,
-                "audio_processing_seconds": 31.63865669300003,
-                "wav_finalize_seconds": 26.491417988000194,
+                "total_seconds": 61.56152275699969,
+                "subprocess_launch_seconds": 28.96949094199954,
+                "audio_processing_seconds": 7.65510799599997,
+                "wav_finalize_seconds": 24.936923819000185,
                 "markers": {
-                  "first_output_line_seen": true,
-                  "progress_completion_seen": true
+                  "first_output_offset_seconds": 28.96949094199954,
+                  "progress_completion_offset_seconds": 36.62459893799951
                 }
               }
             },
@@ -138,21 +138,21 @@
               "job_index": 3,
               "success": true,
               "error": null,
-              "submitted_offset_seconds": 0.0005189550001887255,
-              "started_offset_seconds": 0.0016913419999582402,
-              "completed_offset_seconds": 58.10647236900013,
-              "run_duration_seconds": 58.10478102700017,
-              "completion_latency_seconds": 58.10647236900013,
+              "submitted_offset_seconds": 0.0003762050000659656,
+              "started_offset_seconds": 0.0014338480004880694,
+              "completed_offset_seconds": 61.51487978200021,
+              "run_duration_seconds": 61.51344593399972,
+              "completion_latency_seconds": 61.51487978200021,
               "stage_profile": {
                 "engine": "demucs",
                 "model": "htdemucs",
-                "total_seconds": 58.10452817799978,
-                "subprocess_launch_seconds": 28.04946760699977,
-                "audio_processing_seconds": 34.74342432399999,
-                "wav_finalize_seconds": 23.361103853999794,
+                "total_seconds": 61.51318009199986,
+                "subprocess_launch_seconds": 28.364386891999857,
+                "audio_processing_seconds": 7.487132481000117,
+                "wav_finalize_seconds": 25.661660718999883,
                 "markers": {
-                  "first_output_line_seen": true,
-                  "progress_completion_seen": true
+                  "first_output_offset_seconds": 28.364386891999857,
+                  "progress_completion_offset_seconds": 35.851519372999974
                 }
               }
             },
@@ -160,21 +160,21 @@
               "job_index": 4,
               "success": true,
               "error": null,
-              "submitted_offset_seconds": 0.0006126540001787362,
-              "started_offset_seconds": 0.0012718870002572658,
-              "completed_offset_seconds": 58.212744509000004,
-              "run_duration_seconds": 58.21147262199975,
-              "completion_latency_seconds": 58.212744509000004,
+              "submitted_offset_seconds": 0.0004599009998855763,
+              "started_offset_seconds": 0.0015418620005220873,
+              "completed_offset_seconds": 61.61309626399998,
+              "run_duration_seconds": 61.611554401999456,
+              "completion_latency_seconds": 61.61309626399998,
               "stage_profile": {
                 "engine": "demucs",
                 "model": "htdemucs",
-                "total_seconds": 58.21126586799983,
-                "subprocess_launch_seconds": 27.75386622899987,
-                "audio_processing_seconds": 34.24358697400021,
-                "wav_finalize_seconds": 23.96767889399962,
+                "total_seconds": 61.61135589700007,
+                "subprocess_launch_seconds": 29.175268793000214,
+                "audio_processing_seconds": 7.604209251999237,
+                "wav_finalize_seconds": 24.831877852000616,
                 "markers": {
-                  "first_output_line_seen": true,
-                  "progress_completion_seen": true
+                  "first_output_offset_seconds": 29.175268793000214,
+                  "progress_completion_offset_seconds": 36.77947804499945
                 }
               }
             },
@@ -182,21 +182,21 @@
               "job_index": 5,
               "success": true,
               "error": null,
-              "submitted_offset_seconds": 0.0007126519999474112,
-              "started_offset_seconds": 0.0014867889999550243,
-              "completed_offset_seconds": 57.94020408200004,
-              "run_duration_seconds": 57.93871729300008,
-              "completion_latency_seconds": 57.94020408200004,
+              "submitted_offset_seconds": 0.0005340940006135497,
+              "started_offset_seconds": 0.001640735000364657,
+              "completed_offset_seconds": 61.809121476000655,
+              "run_duration_seconds": 61.80748074100029,
+              "completion_latency_seconds": 61.809121476000655,
               "stage_profile": {
                 "engine": "demucs",
                 "model": "htdemucs",
-                "total_seconds": 57.93845364300023,
-                "subprocess_launch_seconds": 26.755065213999842,
-                "audio_processing_seconds": 32.90933663599981,
-                "wav_finalize_seconds": 25.029117007000423,
+                "total_seconds": 61.80726897000022,
+                "subprocess_launch_seconds": 28.782053267000265,
+                "audio_processing_seconds": 7.607007352999972,
+                "wav_finalize_seconds": 25.418208349999986,
                 "markers": {
-                  "first_output_line_seen": true,
-                  "progress_completion_seen": true
+                  "first_output_offset_seconds": 28.782053267000265,
+                  "progress_completion_offset_seconds": 36.38906062000024
                 }
               }
             },
@@ -204,21 +204,21 @@
               "job_index": 6,
               "success": true,
               "error": null,
-              "submitted_offset_seconds": 0.0008220469999287161,
-              "started_offset_seconds": 0.0013242449999779637,
-              "completed_offset_seconds": 58.05620614999998,
-              "run_duration_seconds": 58.054881905,
-              "completion_latency_seconds": 58.05620614999998,
+              "submitted_offset_seconds": 0.0006103010000515496,
+              "started_offset_seconds": 0.001742158000524796,
+              "completed_offset_seconds": 61.71211497100012,
+              "run_duration_seconds": 61.710372812999594,
+              "completion_latency_seconds": 61.71211497100012,
               "stage_profile": {
                 "engine": "demucs",
                 "model": "htdemucs",
-                "total_seconds": 58.054629953999665,
-                "subprocess_launch_seconds": 27.743511958,
-                "audio_processing_seconds": 34.27427151899974,
-                "wav_finalize_seconds": 23.780358434999926,
+                "total_seconds": 61.71013418700022,
+                "subprocess_launch_seconds": 28.741070089999994,
+                "audio_processing_seconds": 6.315258970000286,
+                "wav_finalize_seconds": 26.65380512699994,
                 "markers": {
-                  "first_output_line_seen": true,
-                  "progress_completion_seen": true
+                  "first_output_offset_seconds": 28.741070089999994,
+                  "progress_completion_offset_seconds": 35.05632906000028
                 }
               }
             },
@@ -226,21 +226,21 @@
               "job_index": 7,
               "success": true,
               "error": null,
-              "submitted_offset_seconds": 0.0009168470000986417,
-              "started_offset_seconds": 0.0015418020002471167,
-              "completed_offset_seconds": 58.29376944100022,
-              "run_duration_seconds": 58.292227638999975,
-              "completion_latency_seconds": 58.29376944100022,
+              "submitted_offset_seconds": 0.000685536000673892,
+              "started_offset_seconds": 0.0018992109999089735,
+              "completed_offset_seconds": 61.47075185700032,
+              "run_duration_seconds": 61.468852646000414,
+              "completion_latency_seconds": 61.47075185700032,
               "stage_profile": {
                 "engine": "demucs",
                 "model": "htdemucs",
-                "total_seconds": 58.292034126999624,
-                "subprocess_launch_seconds": 27.747275635999813,
-                "audio_processing_seconds": 34.53753166999968,
-                "wav_finalize_seconds": 23.754502456999944,
+                "total_seconds": 61.46022739399996,
+                "subprocess_launch_seconds": 27.50352760900023,
+                "audio_processing_seconds": 5.409484396999687,
+                "wav_finalize_seconds": 28.54721538800004,
                 "markers": {
-                  "first_output_line_seen": true,
-                  "progress_completion_seen": true
+                  "first_output_offset_seconds": 27.50352760900023,
+                  "progress_completion_offset_seconds": 32.91301200599992
                 }
               }
             },
@@ -248,21 +248,21 @@
               "job_index": 8,
               "success": true,
               "error": null,
-              "submitted_offset_seconds": 0.0010075089999190823,
-              "started_offset_seconds": 0.003909972000201378,
-              "completed_offset_seconds": 57.790363565999996,
-              "run_duration_seconds": 57.786453593999795,
-              "completion_latency_seconds": 57.790363565999996,
+              "submitted_offset_seconds": 0.0008030830003917799,
+              "started_offset_seconds": 0.002122623000104795,
+              "completed_offset_seconds": 61.7593741110004,
+              "run_duration_seconds": 61.75725148800029,
+              "completion_latency_seconds": 61.7593741110004,
               "stage_profile": {
                 "engine": "demucs",
                 "model": "htdemucs",
-                "total_seconds": 57.77511968299996,
-                "subprocess_launch_seconds": 28.1822838879998,
-                "audio_processing_seconds": 34.91774075700005,
-                "wav_finalize_seconds": 22.85737892599991,
+                "total_seconds": 61.75696622000032,
+                "subprocess_launch_seconds": 29.305693043000247,
+                "audio_processing_seconds": 7.460548768000081,
+                "wav_finalize_seconds": 24.990724408999995,
                 "markers": {
-                  "first_output_line_seen": true,
-                  "progress_completion_seen": true
+                  "first_output_offset_seconds": 29.305693043000247,
+                  "progress_completion_offset_seconds": 36.76624181100033
                 }
               }
             },
@@ -270,64 +270,64 @@
               "job_index": 9,
               "success": true,
               "error": null,
-              "submitted_offset_seconds": 0.0010971530000460916,
-              "started_offset_seconds": 0.0017332490001535916,
-              "completed_offset_seconds": 58.254576841000016,
-              "run_duration_seconds": 58.25284359199986,
-              "completion_latency_seconds": 58.254576841000016,
+              "submitted_offset_seconds": 0.0008943420007199165,
+              "started_offset_seconds": 0.002021355000579206,
+              "completed_offset_seconds": 61.905264407000686,
+              "run_duration_seconds": 61.90324305200011,
+              "completion_latency_seconds": 61.905264407000686,
               "stage_profile": {
                 "engine": "demucs",
                 "model": "htdemucs",
-                "total_seconds": 58.25264309399972,
-                "subprocess_launch_seconds": 27.620095672999923,
-                "audio_processing_seconds": 34.49130630899981,
-                "wav_finalize_seconds": 23.761336784999912,
+                "total_seconds": 61.90304522800034,
+                "subprocess_launch_seconds": 28.366071115000523,
+                "audio_processing_seconds": 7.513879984999221,
+                "wav_finalize_seconds": 26.023094128000594,
                 "markers": {
-                  "first_output_line_seen": true,
-                  "progress_completion_seen": true
+                  "first_output_offset_seconds": 28.366071115000523,
+                  "progress_completion_offset_seconds": 35.879951099999744
                 }
               }
             }
           ],
           "stage_breakdown": {
             "audio_processing_seconds": {
-              "p50_seconds": 34.382788913999775,
-              "p95_seconds": 34.912814091300085,
-              "max_seconds": 34.91774075700005
+              "p50_seconds": 7.500506232999669,
+              "p95_seconds": 7.6754432323499255,
+              "max_seconds": 7.69208115299989
             },
             "subprocess_launch_seconds": {
-              "p50_seconds": 27.745393796999906,
-              "p95_seconds": 28.253977527049962,
-              "max_seconds": 28.31263595900009
+              "p50_seconds": 28.76156167850013,
+              "p95_seconds": 29.24700213050023,
+              "max_seconds": 29.305693043000247
             },
             "total_seconds": {
-              "p50_seconds": 58.149740892999944,
-              "p95_seconds": 58.3146152800999,
-              "max_seconds": 58.33309076900014
+              "p50_seconds": 61.685647087500456,
+              "p95_seconds": 61.901553503200105,
+              "max_seconds": 61.90304522800034
             },
             "wav_finalize_seconds": {
-              "p50_seconds": 23.77084760999992,
-              "p95_seconds": 25.88910800585004,
-              "max_seconds": 26.491417988000194
+              "p50_seconds": 25.539934534499935,
+              "p95_seconds": 27.695180770549996,
+              "max_seconds": 28.54721538800004
             }
           },
-          "baseline_rss_mb": 540.76953125,
-          "peak_tree_rss_mb": 13465.56640625,
-          "peak_tree_rss_delta_mb": 12924.796875,
-          "cpu_seconds": 58.92,
-          "average_cpu_percent": 101.00361366450201,
+          "baseline_rss_mb": 536.87109375,
+          "peak_tree_rss_mb": 15405.45703125,
+          "peak_tree_rss_delta_mb": 14868.5859375,
+          "cpu_seconds": 96.06,
+          "average_cpu_percent": 155.17112415225077,
           "gpu_summary": {
             "available": true,
-            "sample_count": 135,
+            "sample_count": 141,
             "gpus": [
               {
                 "index": 0,
                 "name": "Tesla T4",
                 "memory_total_mb": 15360.0,
                 "peak_memory_used_mb": 8885.0,
-                "average_memory_used_mb": 4575.385185185185,
+                "average_memory_used_mb": 4619.0,
                 "peak_gpu_utilization_percent": 100.0,
-                "average_gpu_utilization_percent": 8.8
+                "average_gpu_utilization_percent": 8.879432624113475
               }
             ]
           }
@@ -344,31 +344,31 @@
         "levels": [
           {
             "concurrency": 10,
-            "p50_elapsed_seconds": 58.14998258950004,
-            "p95_elapsed_seconds": 58.316130222850234,
-            "max_elapsed_seconds": 58.33327069699999,
-            "first_result_seconds": 57.790363565999996,
-            "p50_completion_latency_seconds": 58.151491988500084,
-            "p95_completion_latency_seconds": 58.316130222850234,
-            "max_completion_latency_seconds": 58.33442540800024,
+            "p50_elapsed_seconds": 61.685881385500124,
+            "p95_elapsed_seconds": 61.903815429500625,
+            "max_elapsed_seconds": 61.90324305200011,
+            "first_result_seconds": 61.47075185700032,
+            "p50_completion_latency_seconds": 61.68733266950039,
+            "p95_completion_latency_seconds": 61.903815429500625,
+            "max_completion_latency_seconds": 61.905264407000686,
             "failed_runs": 0,
             "playback_window_seconds": 10.0,
             "safe_limit_seconds": 10.0,
-            "p95_vs_playback_ratio": 5.8316130222850235,
-            "behind_playback_by_seconds": 48.316130222850234,
+            "p95_vs_playback_ratio": 6.190381542950062,
+            "behind_playback_by_seconds": 51.903815429500625,
             "safe_for_live_stream": false,
             "gpu_summary": {
               "available": true,
-              "sample_count": 135,
+              "sample_count": 141,
               "gpus": [
                 {
                   "index": 0,
                   "name": "Tesla T4",
                   "memory_total_mb": 15360.0,
                   "peak_memory_used_mb": 8885.0,
-                  "average_memory_used_mb": 4575.385185185185,
+                  "average_memory_used_mb": 4619.0,
                   "peak_gpu_utilization_percent": 100.0,
-                  "average_gpu_utilization_percent": 8.8
+                  "average_gpu_utilization_percent": 8.879432624113475
                 }
               ]
             }
@@ -382,46 +382,46 @@
       "concurrency_sweep": [
         {
           "concurrency": 10,
-          "wall_clock_seconds": 17.26646188399991,
-          "throughput_jobs_per_hour": 2084.966812648494,
-          "first_result_seconds": 16.584144088999892,
-          "p50_elapsed_seconds": 17.261921466500098,
-          "p95_elapsed_seconds": 17.26466501669993,
-          "max_elapsed_seconds": 17.26482133499985,
-          "p50_completion_latency_seconds": 17.26342781250014,
-          "p95_completion_latency_seconds": 17.26616374494995,
-          "max_completion_latency_seconds": 17.266347069999938,
-          "p50_start_delay_seconds": 0.0014618659999996453,
-          "p95_start_delay_seconds": 0.0016487125000139713,
-          "p50_rtf": 1.7261921466500099,
-          "p95_rtf": 1.726466501669993,
+          "wall_clock_seconds": 18.094811889000084,
+          "throughput_jobs_per_hour": 1989.520544387895,
+          "first_result_seconds": 16.652042599000197,
+          "p50_elapsed_seconds": 17.890936450000027,
+          "p95_elapsed_seconds": 17.999297819850334,
+          "max_elapsed_seconds": 18.085214964000443,
+          "p50_completion_latency_seconds": 17.900257830500323,
+          "p95_completion_latency_seconds": 18.008800423750515,
+          "max_completion_latency_seconds": 18.09469889200045,
+          "p50_start_delay_seconds": 0.009370720000333677,
+          "p95_start_delay_seconds": 0.009559191750258832,
+          "p50_rtf": 1.7890936450000026,
+          "p95_rtf": 1.7999297819850335,
           "errors": [],
           "successful_runs": 10,
           "failed_runs": 0,
-          "model_initialization_seconds_avg": 0.8250722506000784,
+          "model_initialization_seconds_avg": 0.8115605830000276,
           "job_timings": [
             {
               "job_index": 0,
               "success": true,
               "error": null,
-              "submitted_offset_seconds": 0.0001480900000387919,
-              "started_offset_seconds": 0.0015722729999652074,
-              "completed_offset_seconds": 17.263689498000076,
-              "run_duration_seconds": 17.26211722500011,
-              "completion_latency_seconds": 17.263689498000076,
+              "submitted_offset_seconds": 0.001053420000062033,
+              "started_offset_seconds": 0.009525430000394408,
+              "completed_offset_seconds": 17.903813407000598,
+              "run_duration_seconds": 17.894287977000204,
+              "completion_latency_seconds": 17.903813407000598,
               "stage_profile": {
                 "engine": "mdx_onnx",
                 "model": "UVR_MDXNET_KARA_2.onnx",
-                "load_model_seconds": 1.5500004337809514e-06,
-                "total_seconds": 17.261966974000188,
-                "setup_seconds": 0.0024330609999196895,
-                "audio_processing_seconds": 12.958252645999892,
-                "wav_finalize_seconds": 3284.3454501640003,
-                "cleanup_seconds": 3281.419331543,
+                "load_model_seconds": 1.8119999367627315e-06,
+                "total_seconds": 17.894154139999955,
+                "setup_seconds": 0.0011945770002057543,
+                "audio_processing_seconds": 13.679821759999868,
+                "wav_finalize_seconds": 2.7764241499999116,
+                "cleanup_seconds": 1.4367136529999698,
                 "markers": {
-                  "library_start_seconds": 0.0024330609999196895,
-                  "first_save_seconds": 12.960685706999811,
-                  "post_save_cleanup_seconds": 15.886804327999926
+                  "library_start_seconds": 0.0011945770002057543,
+                  "first_save_seconds": 13.681016337000074,
+                  "post_save_cleanup_seconds": 16.457440486999985
                 }
               }
             },
@@ -429,24 +429,24 @@
               "job_index": 1,
               "success": true,
               "error": null,
-              "submitted_offset_seconds": 0.00029932600000392995,
-              "started_offset_seconds": 0.00152573500008657,
-              "completed_offset_seconds": 17.266347069999938,
-              "run_duration_seconds": 17.26482133499985,
-              "completion_latency_seconds": 17.266347069999938,
+              "submitted_offset_seconds": 0.0021290610002324684,
+              "started_offset_seconds": 0.009443120000469207,
+              "completed_offset_seconds": 17.898137834999943,
+              "run_duration_seconds": 17.888694714999474,
+              "completion_latency_seconds": 17.898137834999943,
               "stage_profile": {
                 "engine": "mdx_onnx",
                 "model": "UVR_MDXNET_KARA_2.onnx",
-                "load_model_seconds": 1.4900001588102896e-06,
-                "total_seconds": 17.2646934899999,
-                "setup_seconds": 0.0024778500001048087,
-                "audio_processing_seconds": 12.958251492999807,
-                "wav_finalize_seconds": 3284.348086734,
-                "cleanup_seconds": 3281.421968231,
+                "load_model_seconds": 1.4150000424706377e-06,
+                "total_seconds": 17.888204391000727,
+                "setup_seconds": 0.0012727080002150615,
+                "audio_processing_seconds": 13.679820672999995,
+                "wav_finalize_seconds": 2.776411480999741,
+                "cleanup_seconds": 1.4306995290007762,
                 "markers": {
-                  "library_start_seconds": 0.0024778500001048087,
-                  "first_save_seconds": 12.960729342999912,
-                  "post_save_cleanup_seconds": 15.88684784599991
+                  "library_start_seconds": 0.0012727080002150615,
+                  "first_save_seconds": 13.68109338100021,
+                  "post_save_cleanup_seconds": 16.45750486199995
                 }
               }
             },
@@ -454,24 +454,24 @@
               "job_index": 2,
               "success": true,
               "error": null,
-              "submitted_offset_seconds": 0.0004496269998526259,
-              "started_offset_seconds": 0.001613121999980649,
-              "completed_offset_seconds": 17.265865738999764,
-              "run_duration_seconds": 17.264252616999784,
-              "completion_latency_seconds": 17.265865738999764,
+              "submitted_offset_seconds": 0.003127734000372584,
+              "started_offset_seconds": 0.0091204430000289,
+              "completed_offset_seconds": 17.301235427000393,
+              "run_duration_seconds": 17.292114984000364,
+              "completion_latency_seconds": 17.301235427000393,
               "stage_profile": {
                 "engine": "mdx_onnx",
                 "model": "UVR_MDXNET_KARA_2.onnx",
-                "load_model_seconds": 1.4679999367217533e-06,
-                "total_seconds": 17.26371501099993,
-                "setup_seconds": 0.0023939030002111394,
-                "audio_processing_seconds": 12.958253725999839,
-                "wav_finalize_seconds": 3284.347276957,
-                "cleanup_seconds": 3281.421158182,
+                "load_model_seconds": 2.773999767669011e-06,
+                "total_seconds": 16.459999325000354,
+                "setup_seconds": 0.0015811880002729595,
+                "audio_processing_seconds": 13.679814979999719,
+                "wav_finalize_seconds": 2.776411408000058,
+                "cleanup_seconds": 0.002191749000303389,
                 "markers": {
-                  "library_start_seconds": 0.0023939030002111394,
-                  "first_save_seconds": 12.96064762900005,
-                  "post_save_cleanup_seconds": 15.8867664039999
+                  "library_start_seconds": 0.0015811880002729595,
+                  "first_save_seconds": 13.681396167999992,
+                  "post_save_cleanup_seconds": 16.45780757600005
                 }
               }
             },
@@ -479,24 +479,24 @@
               "job_index": 3,
               "success": true,
               "error": null,
-              "submitted_offset_seconds": 0.0005656309999721998,
-              "started_offset_seconds": 0.0011514660000102594,
-              "completed_offset_seconds": 17.265625427000032,
-              "run_duration_seconds": 17.26447396100002,
-              "completion_latency_seconds": 17.265625427000032,
+              "submitted_offset_seconds": 0.004048374000376498,
+              "started_offset_seconds": 0.009483928000008746,
+              "completed_offset_seconds": 18.09469889200045,
+              "run_duration_seconds": 18.085214964000443,
+              "completion_latency_seconds": 18.09469889200045,
               "stage_profile": {
                 "engine": "mdx_onnx",
                 "model": "UVR_MDXNET_KARA_2.onnx",
-                "load_model_seconds": 2.6610000531945843e-06,
-                "total_seconds": 17.26381564400026,
-                "setup_seconds": 0.002833969000221259,
-                "audio_processing_seconds": 12.958239249999679,
-                "wav_finalize_seconds": 3284.3464951250003,
-                "cleanup_seconds": 3281.420374589,
+                "load_model_seconds": 1.5770001482451335e-06,
+                "total_seconds": 18.085032560999935,
+                "setup_seconds": 0.001233959999808576,
+                "audio_processing_seconds": 13.679821235999952,
+                "wav_finalize_seconds": 2.776411783000185,
+                "cleanup_seconds": 1.6275655819999884,
                 "markers": {
-                  "library_start_seconds": 0.002833969000221259,
-                  "first_save_seconds": 12.9610732189999,
-                  "post_save_cleanup_seconds": 15.887193755000226
+                  "library_start_seconds": 0.001233959999808576,
+                  "first_save_seconds": 13.681055195999761,
+                  "post_save_cleanup_seconds": 16.457466978999946
                 }
               }
             },
@@ -504,24 +504,24 @@
               "job_index": 4,
               "success": true,
               "error": null,
-              "submitted_offset_seconds": 0.0006521519999296288,
-              "started_offset_seconds": 0.0012721879998025543,
-              "completed_offset_seconds": 17.26143631700006,
-              "run_duration_seconds": 17.26016412900026,
-              "completion_latency_seconds": 17.26143631700006,
+              "submitted_offset_seconds": 0.00504726000053779,
+              "started_offset_seconds": 0.009220576000188885,
+              "completed_offset_seconds": 17.89860071900057,
+              "run_duration_seconds": 17.88938014300038,
+              "completion_latency_seconds": 17.89860071900057,
               "stage_profile": {
                 "engine": "mdx_onnx",
                 "model": "UVR_MDXNET_KARA_2.onnx",
-                "load_model_seconds": 2.6790003175847232e-06,
-                "total_seconds": 17.257827003999864,
-                "setup_seconds": 0.002720027000123082,
-                "audio_processing_seconds": 12.95824489000006,
-                "wav_finalize_seconds": 3284.3407331589997,
-                "cleanup_seconds": 3281.414614661,
+                "load_model_seconds": 2.8539998311316594e-06,
+                "total_seconds": 17.889237097999285,
+                "setup_seconds": 0.001485295999373193,
+                "audio_processing_seconds": 13.679818373000671,
+                "wav_finalize_seconds": 2.7764090179998675,
+                "cleanup_seconds": 1.4315244109993728,
                 "markers": {
-                  "library_start_seconds": 0.002720027000123082,
-                  "first_save_seconds": 12.960964917000183,
-                  "post_save_cleanup_seconds": 15.887083414999779
+                  "library_start_seconds": 0.001485295999373193,
+                  "first_save_seconds": 13.681303669000044,
+                  "post_save_cleanup_seconds": 16.457712686999912
                 }
               }
             },
@@ -529,24 +529,24 @@
               "job_index": 5,
               "success": true,
               "error": null,
-              "submitted_offset_seconds": 0.0007317189997593232,
-              "started_offset_seconds": 0.001677832000041235,
-              "completed_offset_seconds": 16.584777935000147,
-              "run_duration_seconds": 16.583100103000106,
-              "completion_latency_seconds": 16.584777935000147,
+              "submitted_offset_seconds": 0.006045965000339493,
+              "started_offset_seconds": 0.008994739000627305,
+              "completed_offset_seconds": 16.652042599000197,
+              "run_duration_seconds": 16.64304785999957,
+              "completion_latency_seconds": 16.652042599000197,
               "stage_profile": {
                 "engine": "mdx_onnx",
                 "model": "UVR_MDXNET_KARA_2.onnx",
-                "load_model_seconds": 1.6859999050211627e-06,
-                "total_seconds": 15.889679102000173,
-                "setup_seconds": 0.002330707000055554,
-                "audio_processing_seconds": 12.958255370999723,
-                "wav_finalize_seconds": 3282.9733675660004,
-                "cleanup_seconds": 3280.0472488620003,
+                "load_model_seconds": 2.7599999157246202e-06,
+                "total_seconds": 16.458185684000455,
+                "setup_seconds": 0.0016997600005197455,
+                "audio_processing_seconds": 13.679805099999612,
+                "wav_finalize_seconds": 2.776417312000376,
+                "cleanup_seconds": 0.0002635119999467861,
                 "markers": {
-                  "library_start_seconds": 0.002330707000055554,
-                  "first_save_seconds": 12.960586077999778,
-                  "post_save_cleanup_seconds": 15.886704781999924
+                  "library_start_seconds": 0.0016997600005197455,
+                  "first_save_seconds": 13.681504860000132,
+                  "post_save_cleanup_seconds": 16.457922172000508
                 }
               }
             },
@@ -554,24 +554,24 @@
               "job_index": 6,
               "success": true,
               "error": null,
-              "submitted_offset_seconds": 0.0008176480000656738,
-              "started_offset_seconds": 0.001338560000021971,
-              "completed_offset_seconds": 16.584144088999892,
-              "run_duration_seconds": 16.58280552899987,
-              "completion_latency_seconds": 16.584144088999892,
+              "submitted_offset_seconds": 0.007059154000671697,
+              "started_offset_seconds": 0.009294653000324615,
+              "completed_offset_seconds": 17.899129166999955,
+              "run_duration_seconds": 17.88983451399963,
+              "completion_latency_seconds": 17.899129166999955,
               "stage_profile": {
                 "engine": "mdx_onnx",
                 "model": "UVR_MDXNET_KARA_2.onnx",
-                "load_model_seconds": 1.7069996829377487e-06,
-                "total_seconds": 16.40419317800024,
-                "setup_seconds": 0.0026580600001580024,
-                "audio_processing_seconds": 12.958247152999775,
-                "wav_finalize_seconds": 3283.487223423,
-                "cleanup_seconds": 3280.561105639,
+                "load_model_seconds": 1.7359998309984803e-06,
+                "total_seconds": 17.88968523099993,
+                "setup_seconds": 0.0014141819992801175,
+                "audio_processing_seconds": 13.679819937000502,
+                "wav_finalize_seconds": 2.7764087189998463,
+                "cleanup_seconds": 1.4320423930003017,
                 "markers": {
-                  "library_start_seconds": 0.0026580600001580024,
-                  "first_save_seconds": 12.960905212999933,
-                  "post_save_cleanup_seconds": 15.887022997000258
+                  "library_start_seconds": 0.0014141819992801175,
+                  "first_save_seconds": 13.681234118999782,
+                  "post_save_cleanup_seconds": 16.45764283799963
                 }
               }
             },
@@ -579,24 +579,24 @@
               "job_index": 7,
               "success": true,
               "error": null,
-              "submitted_offset_seconds": 0.0008977329998742789,
-              "started_offset_seconds": 0.0013841609998053173,
-              "completed_offset_seconds": 17.262233473999913,
-              "run_duration_seconds": 17.260849313000108,
-              "completion_latency_seconds": 17.262233473999913,
+              "submitted_offset_seconds": 0.00807994100068754,
+              "started_offset_seconds": 0.009586815000147908,
+              "completed_offset_seconds": 17.902669783999954,
+              "run_duration_seconds": 17.893082968999806,
+              "completion_latency_seconds": 17.902669783999954,
               "stage_profile": {
                 "engine": "mdx_onnx",
                 "model": "UVR_MDXNET_KARA_2.onnx",
-                "load_model_seconds": 1.3799999578623101e-06,
-                "total_seconds": 17.260253529000238,
-                "setup_seconds": 0.002614339000047039,
-                "audio_processing_seconds": 12.958248638999976,
-                "wav_finalize_seconds": 3284.343371491,
-                "cleanup_seconds": 3281.4172539150004,
+                "load_model_seconds": 2.0320003386586905e-06,
+                "total_seconds": 17.89294222300032,
+                "setup_seconds": 0.0011351520006428473,
+                "audio_processing_seconds": 13.679823987999953,
+                "wav_finalize_seconds": 2.7764227689995096,
+                "cleanup_seconds": 1.4355603140002131,
                 "markers": {
-                  "library_start_seconds": 0.002614339000047039,
-                  "first_save_seconds": 12.960862978000023,
-                  "post_save_cleanup_seconds": 15.88698055399982
+                  "library_start_seconds": 0.0011351520006428473,
+                  "first_save_seconds": 13.680959140000596,
+                  "post_save_cleanup_seconds": 16.457381909000105
                 }
               }
             },
@@ -604,24 +604,24 @@
               "job_index": 8,
               "success": true,
               "error": null,
-              "submitted_offset_seconds": 0.0009804149999581568,
-              "started_offset_seconds": 0.001440419000118709,
-              "completed_offset_seconds": 17.263166127000204,
-              "run_duration_seconds": 17.261725708000085,
-              "completion_latency_seconds": 17.263166127000204,
+              "submitted_offset_seconds": 0.008715252000001783,
+              "started_offset_seconds": 0.00934810800026753,
+              "completed_offset_seconds": 17.90138649400069,
+              "run_duration_seconds": 17.892038386000422,
+              "completion_latency_seconds": 17.90138649400069,
               "stage_profile": {
                 "engine": "mdx_onnx",
                 "model": "UVR_MDXNET_KARA_2.onnx",
-                "load_model_seconds": 1.8480000107956585e-06,
-                "total_seconds": 17.260673329999918,
-                "setup_seconds": 0.0025595509996492183,
-                "audio_processing_seconds": 12.958249503999923,
-                "wav_finalize_seconds": 3284.3439016540005,
-                "cleanup_seconds": 3281.417783403,
+                "load_model_seconds": 1.7060001482605003e-06,
+                "total_seconds": 17.891891109000426,
+                "setup_seconds": 0.001363420999950904,
+                "audio_processing_seconds": 13.679820047000248,
+                "wav_finalize_seconds": 2.776409498999783,
+                "cleanup_seconds": 1.4342981420004435,
                 "markers": {
-                  "library_start_seconds": 0.0025595509996492183,
-                  "first_save_seconds": 12.960809054999572,
-                  "post_save_cleanup_seconds": 15.886927305999961
+                  "library_start_seconds": 0.001363420999950904,
+                  "first_save_seconds": 13.6811834680002,
+                  "post_save_cleanup_seconds": 16.457592966999982
                 }
               }
             },
@@ -629,65 +629,65 @@
               "job_index": 9,
               "success": true,
               "error": null,
-              "submitted_offset_seconds": 0.0010947000000669505,
-              "started_offset_seconds": 0.0014833129998805816,
-              "completed_offset_seconds": 17.265939680999963,
-              "run_duration_seconds": 17.264456368000083,
-              "completion_latency_seconds": 17.265939680999963,
+              "submitted_offset_seconds": 0.00891482699989865,
+              "started_offset_seconds": 0.009393332000399823,
+              "completed_offset_seconds": 17.902199115000258,
+              "run_duration_seconds": 17.892805782999858,
+              "completion_latency_seconds": 17.902199115000258,
               "stage_profile": {
                 "engine": "mdx_onnx",
                 "model": "UVR_MDXNET_KARA_2.onnx",
-                "load_model_seconds": 1.238000095327152e-06,
-                "total_seconds": 17.264029705000212,
-                "setup_seconds": 0.0025192690000039875,
-                "audio_processing_seconds": 12.95825060900006,
-                "wav_finalize_seconds": 3284.347339299,
-                "cleanup_seconds": 3281.4212210439996,
+                "load_model_seconds": 1.475999852118548e-06,
+                "total_seconds": 17.084821390999423,
+                "setup_seconds": 0.0013206559997342993,
+                "audio_processing_seconds": 13.67982028499955,
+                "wav_finalize_seconds": 2.7764107620005234,
+                "cleanup_seconds": 0.6272696879996147,
                 "markers": {
-                  "library_start_seconds": 0.0025192690000039875,
-                  "first_save_seconds": 12.960769878000065,
-                  "post_save_cleanup_seconds": 15.886888133000411
+                  "library_start_seconds": 0.0013206559997342993,
+                  "first_save_seconds": 13.681140940999285,
+                  "post_save_cleanup_seconds": 16.457551702999808
                 }
               }
             }
           ],
           "stage_breakdown": {
             "audio_processing_seconds": {
-              "p50_seconds": 12.958250056499992,
-              "p95_seconds": 12.958254630749774,
-              "max_seconds": 12.958255370999723
+              "p50_seconds": 13.6798201659999,
+              "p95_seconds": 13.679822985399914,
+              "max_seconds": 13.679823987999953
             },
             "cleanup_seconds": {
-              "p50_seconds": 3281.418557473,
-              "p95_seconds": 3281.42163199685,
-              "max_seconds": 3281.421968231
+              "p50_seconds": 1.4317834019998372,
+              "p95_seconds": 1.5416822139499802,
+              "max_seconds": 1.6275655819999884
             },
             "load_model_seconds": {
-              "p50_seconds": 1.618000169401057e-06,
-              "p95_seconds": 2.670900198609161e-06,
-              "max_seconds": 2.6790003175847232e-06
+              "p50_seconds": 1.773999883880606e-06,
+              "p95_seconds": 2.8179998025734674e-06,
+              "max_seconds": 2.8539998311316594e-06
             },
             "setup_seconds": {
-              "p50_seconds": 0.002539409999826603,
-              "p95_seconds": 0.0027826951001770793,
-              "max_seconds": 0.002833969000221259
+              "p50_seconds": 0.0013420384998426016,
+              "p95_seconds": 0.0016464026004086919,
+              "max_seconds": 0.0016997600005197455
             },
             "total_seconds": {
-              "p50_seconds": 17.261320152000053,
-              "p95_seconds": 17.264394786750042,
-              "max_seconds": 17.2646934899999
+              "p50_seconds": 17.889461164499608,
+              "p95_seconds": 17.99913727154994,
+              "max_seconds": 18.085032560999935
             },
             "wav_finalize_seconds": {
-              "p50_seconds": 3284.344675909,
-              "p95_seconds": 3284.34775038825,
-              "max_seconds": 3284.348086734
+              "p50_seconds": 2.7764114444998995,
+              "p95_seconds": 2.7764235285497305,
+              "max_seconds": 2.7764241499999116
             }
           },
-          "baseline_rss_mb": 1170.21875,
-          "peak_tree_rss_mb": 5895.34765625,
-          "peak_tree_rss_delta_mb": 4725.12890625,
-          "cpu_seconds": 19.47,
-          "average_cpu_percent": 112.76195511740603,
+          "baseline_rss_mb": 1216.6953125,
+          "peak_tree_rss_mb": 5888.7578125,
+          "peak_tree_rss_delta_mb": 4672.0625,
+          "cpu_seconds": 21.04,
+          "average_cpu_percent": 116.27642292755918,
           "gpu_summary": {
             "available": true,
             "sample_count": 60,
@@ -696,10 +696,10 @@
                 "index": 0,
                 "name": "Tesla T4",
                 "memory_total_mb": 15360.0,
-                "peak_memory_used_mb": 14891.0,
-                "average_memory_used_mb": 6323.133333333333,
+                "peak_memory_used_mb": 14905.0,
+                "average_memory_used_mb": 6263.566666666667,
                 "peak_gpu_utilization_percent": 100.0,
-                "average_gpu_utilization_percent": 21.733333333333334
+                "average_gpu_utilization_percent": 20.066666666666666
               }
             ]
           }
@@ -716,18 +716,18 @@
         "levels": [
           {
             "concurrency": 10,
-            "p50_elapsed_seconds": 17.261921466500098,
-            "p95_elapsed_seconds": 17.26616374494995,
-            "max_elapsed_seconds": 17.26482133499985,
-            "first_result_seconds": 16.584144088999892,
-            "p50_completion_latency_seconds": 17.26342781250014,
-            "p95_completion_latency_seconds": 17.26616374494995,
-            "max_completion_latency_seconds": 17.266347069999938,
+            "p50_elapsed_seconds": 17.890936450000027,
+            "p95_elapsed_seconds": 18.008800423750515,
+            "max_elapsed_seconds": 18.085214964000443,
+            "first_result_seconds": 16.652042599000197,
+            "p50_completion_latency_seconds": 17.900257830500323,
+            "p95_completion_latency_seconds": 18.008800423750515,
+            "max_completion_latency_seconds": 18.09469889200045,
             "failed_runs": 0,
             "playback_window_seconds": 10.0,
             "safe_limit_seconds": 10.0,
-            "p95_vs_playback_ratio": 1.726616374494995,
-            "behind_playback_by_seconds": 7.266163744949949,
+            "p95_vs_playback_ratio": 1.8008800423750515,
+            "behind_playback_by_seconds": 8.008800423750515,
             "safe_for_live_stream": false,
             "gpu_summary": {
               "available": true,
@@ -737,10 +737,10 @@
                   "index": 0,
                   "name": "Tesla T4",
                   "memory_total_mb": 15360.0,
-                  "peak_memory_used_mb": 14891.0,
-                  "average_memory_used_mb": 6323.133333333333,
+                  "peak_memory_used_mb": 14905.0,
+                  "average_memory_used_mb": 6263.566666666667,
                   "peak_gpu_utilization_percent": 100.0,
-                  "average_gpu_utilization_percent": 21.733333333333334
+                  "average_gpu_utilization_percent": 20.066666666666666
                 }
               ]
             }
@@ -756,8 +756,8 @@
         "name": "Tesla T4",
         "memory_total_mb": 15360.0,
         "memory_used_mb": 205.0,
-        "utilization_gpu_percent": 94.0,
-        "utilization_memory_percent": 10.0
+        "utilization_gpu_percent": 63.0,
+        "utilization_memory_percent": 7.0
       }
     ]
   }

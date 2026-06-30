@@ -303,6 +303,89 @@ def summarize_stage_timings(stage_profiles: List[Dict[str, Any]]) -> Dict[str, A
     return summary
 
 
+def build_benchmark_timing(
+    submitted_offset: float,
+    started_offset: float,
+    completed_offset: float,
+    stage_profile: Optional[Dict[str, Any]],
+) -> Dict[str, Dict[str, float]]:
+    profile = stage_profile or {}
+    markers: Dict[str, float] = {
+        "request_received_offset_seconds": submitted_offset,
+        "job_enqueued_offset_seconds": submitted_offset,
+        "job_started_offset_seconds": started_offset,
+        "separation_started_offset_seconds": started_offset,
+        "separation_completed_offset_seconds": completed_offset,
+        "artifact_ready_offset_seconds": completed_offset,
+        "job_completed_offset_seconds": completed_offset,
+    }
+    durations: Dict[str, float] = {
+        "request_to_queue_seconds": 0.0,
+        "queue_wait_seconds": max(0.0, started_offset - submitted_offset),
+        "separation_total_seconds": max(0.0, completed_offset - started_offset),
+        "processing_seconds": max(0.0, completed_offset - started_offset),
+        "end_to_end_seconds": max(0.0, completed_offset - submitted_offset),
+    }
+
+    if "subprocess_launch_seconds" in profile:
+        launch_seconds = float(profile.get("subprocess_launch_seconds", 0.0))
+        inference_seconds = float(profile.get("audio_processing_seconds", 0.0))
+        wav_seconds = float(profile.get("wav_finalize_seconds", 0.0))
+        inference_started = started_offset + launch_seconds
+        inference_completed = inference_started + inference_seconds
+        wav_started = inference_completed
+        wav_completed = wav_started + wav_seconds
+
+        markers.update(
+            {
+                "inference_started_offset_seconds": inference_started,
+                "inference_completed_offset_seconds": inference_completed,
+                "engine_wav_write_started_offset_seconds": wav_started,
+                "engine_wav_write_completed_offset_seconds": wav_completed,
+            }
+        )
+        durations.update(
+            {
+                "engine_launch_seconds": launch_seconds,
+                "inference_seconds": inference_seconds,
+                "engine_wav_write_seconds": wav_seconds,
+            }
+        )
+    elif profile:
+        setup_seconds = float(profile.get("setup_seconds", 0.0))
+        inference_seconds = float(profile.get("audio_processing_seconds", 0.0))
+        wav_seconds = float(profile.get("wav_finalize_seconds", 0.0))
+        cleanup_seconds = float(profile.get("cleanup_seconds", 0.0))
+        inference_started = started_offset + setup_seconds
+        inference_completed = inference_started + inference_seconds
+        wav_started = inference_completed
+        wav_completed = wav_started + wav_seconds
+        cleanup_completed = wav_completed + cleanup_seconds
+
+        markers.update(
+            {
+                "inference_started_offset_seconds": inference_started,
+                "inference_completed_offset_seconds": inference_completed,
+                "engine_wav_write_started_offset_seconds": wav_started,
+                "engine_wav_write_completed_offset_seconds": wav_completed,
+                "engine_cleanup_completed_offset_seconds": cleanup_completed,
+            }
+        )
+        durations.update(
+            {
+                "engine_setup_seconds": setup_seconds,
+                "inference_seconds": inference_seconds,
+                "engine_wav_write_seconds": wav_seconds,
+                "engine_cleanup_seconds": cleanup_seconds,
+            }
+        )
+
+    return {
+        "timing_markers": markers,
+        "timing_durations": durations,
+    }
+
+
 def create_engine(
     engine_name: str,
     model_name: str,
@@ -523,6 +606,12 @@ def run_benchmark_concurrency_for_engine(
                 "run_duration_seconds": thread_elapsed[i],
                 "completion_latency_seconds": completed_offsets[i],
                 "stage_profile": stage_profiles[i] or {},
+                **build_benchmark_timing(
+                    submitted_offsets[i],
+                    started_offsets[i],
+                    completed_offsets[i],
+                    stage_profiles[i],
+                ),
             }
             for i in range(concurrency)
         ]

@@ -162,3 +162,7 @@ def test_concurrency_benchmark_reports_per_job_completion_timings(tmp_path, monk
     assert level["p95_completion_latency_seconds"] >= level["first_result_seconds"]
     assert all(job["completion_latency_seconds"] > 0 for job in level["job_timings"])
     assert level["stage_breakdown"]["audio_processing_seconds"]["p50_seconds"] == 0.02
+    assert all("timing_markers" in job for job in level["job_timings"])
+    assert all("timing_durations" in job for job in level["job_timings"])
+    assert all(job["timing_durations"]["end_to_end_seconds"] > 0 for job in level["job_timings"])
+    assert all(job["timing_durations"]["inference_seconds"] == 0.02 for job in level["job_timings"])
