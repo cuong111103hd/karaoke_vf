@@ -25,6 +25,9 @@ class SeparationResult(BaseModel):
     output_format: str
     elapsed_seconds: float
     stage_durations: Dict[StageName, float]
+    timing_markers: Dict[str, float] = {}
+    timing_durations: Dict[str, float] = {}
+    engine_timing_profile: Dict[str, Any] = {}
     metadata: Dict[str, Any] = {}
 
 class ProgressiveChunkMetadata(BaseModel):

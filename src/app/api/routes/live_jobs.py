@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, status
+import time
 from typing import List
 from pathlib import Path
 
@@ -63,4 +64,9 @@ async def get_chunk_instrumental(job_id: str, index: int):
     # Determine media type based on file extension
     media_type = "audio/wav" if file_path.suffix.lower() == ".wav" else "audio/mpeg"
     
-    return stream_file_response(file_path, media_type=media_type, filename=file_path.name)
+    return stream_file_response(
+        file_path,
+        media_type=media_type,
+        filename=file_path.name,
+        extra_headers={"X-Server-Response-Started-At": str(time.time())},
+    )

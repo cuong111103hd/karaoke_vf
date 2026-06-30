@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Any, Dict, Optional
 
 class LiveJobRecord(BaseModel):
     job_id: str
@@ -14,3 +14,6 @@ class LiveJobRecord(BaseModel):
     separator_engine: Optional[str] = None
     model_name: Optional[str] = None
     output_format: str
+    timing_markers: Dict[str, float] = {}
+    timing_durations: Dict[str, float] = {}
+    engine_timing_profile: Dict[str, Any] = {}

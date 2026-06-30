@@ -13,7 +13,7 @@ def test_demucs_engine_success(tmp_path) -> None:
     output_dir = tmp_path / "output"
     
     # We will simulate successful output creation in mock_execute
-    def mock_execute(cmd):
+    def mock_execute(cmd, line_callback=None):
         # Expected output structure: output_dir / model_name / input_name
         track_dir = output_dir / "htdemucs" / "song"
         track_dir.mkdir(parents=True, exist_ok=True)

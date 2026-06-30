@@ -82,11 +82,11 @@ class DemucsEngine(Separator):
             "model": self.model_name,
             "total_seconds": finished_at - started_at,
             "subprocess_launch_seconds": max(0.0, first_output_at - started_at),
-            "audio_processing_seconds": max(0.0, progress_done_at - started_at),
+            "audio_processing_seconds": max(0.0, progress_done_at - first_output_at),
             "wav_finalize_seconds": max(0.0, finished_at - progress_done_at),
             "markers": {
-                "first_output_line_seen": "first_output_line_seconds" in stage_markers,
-                "progress_completion_seen": "last_progress_complete_seconds" in stage_markers,
+                "first_output_offset_seconds": max(0.0, first_output_at - started_at),
+                "progress_completion_offset_seconds": max(0.0, progress_done_at - started_at),
             },
         }
 

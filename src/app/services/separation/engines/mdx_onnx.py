@@ -198,8 +198,8 @@ class MdxOnnxEngine(Separator):
             "total_seconds": separate_finished_at - separate_started_at,
             "setup_seconds": max(0.0, library_start),
             "audio_processing_seconds": max(0.0, save_start - library_start),
-            "wav_finalize_seconds": max(0.0, separate_finished_at - save_start),
-            "cleanup_seconds": max(0.0, separate_finished_at - cleanup_start),
+            "wav_finalize_seconds": max(0.0, cleanup_start - save_start),
+            "cleanup_seconds": max(0.0, (separate_finished_at - separate_started_at) - cleanup_start),
             "markers": log_capture.markers,
         }
 

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+import time
 from pathlib import Path
 from app.api.responses import stream_file_response
 from app.jobs.manager import JobManager
@@ -20,7 +21,12 @@ async def get_instrumental_file(job_id: str):
         raise HTTPException(status_code=404, detail="Instrumental file not found on disk.")
         
     media_type = "audio/wav" if path.suffix.lower() == ".wav" else "audio/mpeg"
-    return stream_file_response(path, media_type=media_type, filename=path.name)
+    return stream_file_response(
+        path,
+        media_type=media_type,
+        filename=path.name,
+        extra_headers={"X-Server-Response-Started-At": str(time.time())},
+    )
 
 @router.get("/jobs/{job_id}/vocals")
 async def get_vocals_file(job_id: str):
@@ -37,4 +43,9 @@ async def get_vocals_file(job_id: str):
         raise HTTPException(status_code=404, detail="Vocals file not found on disk.")
         
     media_type = "audio/wav" if path.suffix.lower() == ".wav" else "audio/mpeg"
-    return stream_file_response(path, media_type=media_type, filename=path.name)
+    return stream_file_response(
+        path,
+        media_type=media_type,
+        filename=path.name,
+        extra_headers={"X-Server-Response-Started-At": str(time.time())},
+    )

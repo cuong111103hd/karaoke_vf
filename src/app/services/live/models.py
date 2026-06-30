@@ -45,6 +45,9 @@ class LiveChunkMetadata(BaseModel):
     instrumental_path: Optional[str] = None
     processing_seconds: Optional[float] = None
     error_message: Optional[str] = None
+    timing_markers: Dict[str, float] = {}
+    timing_durations: Dict[str, float] = {}
+    engine_timing_profile: Dict[str, Any] = {}
 
 class LiveManifest(BaseModel):
     job_id: str
@@ -60,6 +63,9 @@ class LiveManifest(BaseModel):
     max_chunks: Optional[int] = None
     chunks: List[LiveChunkMetadata] = []
     error_message: Optional[str] = None
+    timing_markers: Dict[str, float] = {}
+    timing_durations: Dict[str, float] = {}
+    engine_timing_profile: Dict[str, Any] = {}
     metadata: Dict[str, Any] = {}
 
 class LiveProducerResult(BaseModel):

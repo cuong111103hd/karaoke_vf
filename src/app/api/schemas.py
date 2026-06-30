@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Any, Dict, Optional, List
 
 class JobCreateRequest(BaseModel):
     youtube_url: str = Field(..., description="The YouTube video URL to separate.")
@@ -22,6 +22,9 @@ class LiveChunkResponse(BaseModel):
     instrumental_url: Optional[str] = None
     processing_seconds: Optional[float] = None
     error_message: Optional[str] = None
+    timing_markers: Dict[str, float] = {}
+    timing_durations: Dict[str, float] = {}
+    engine_timing_profile: Dict[str, Any] = {}
 
 class LiveJobResponse(BaseModel):
     job_id: str
@@ -38,4 +41,7 @@ class LiveJobResponse(BaseModel):
     video_title: Optional[str] = None
     video_duration: Optional[float] = None
     error_message: Optional[str] = None
+    timing_markers: Dict[str, float] = {}
+    timing_durations: Dict[str, float] = {}
+    engine_timing_profile: Dict[str, Any] = {}
     chunks: List[LiveChunkResponse] = []

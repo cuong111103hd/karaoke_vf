@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, status
+import time
 from typing import List
 from app.api.schemas import JobCreateRequest
 from app.jobs.models import JobRecord
@@ -12,13 +13,13 @@ manager = JobManager()
 async def create_job(request: JobCreateRequest) -> JobRecord:
     from app.services.capacity_controller import QueueFullError, capacity_controller
 
-    job = manager.create_job(request.youtube_url)
+    job = manager.create_job(request.youtube_url, request_received_at=time.time())
 
     try:
         capacity_controller.submit(
             job_id=job.job_id,
             run=lambda: process_job_background(job.job_id, manager),
-            on_queued=lambda: None,
+            on_queued=lambda: manager.mark_job_enqueued(job.job_id),
             on_running=lambda: manager.start_job(job.job_id),
         )
     except QueueFullError:
