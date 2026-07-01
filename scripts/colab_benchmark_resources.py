@@ -150,7 +150,41 @@ class GpuSampler:
         final = query_nvidia_smi()
         if final.get("available"):
             self.samples.append(final)
-        return summarize_gpu_samples(self.samples, fallback=final)
+        summary = summarize_gpu_samples(self.samples, fallback=final)
+        if summary.get("available"):
+            summary["sample_interval_seconds"] = self.interval_seconds
+            summary["raw_samples"] = self.samples
+            for gpu in summary.get("gpus", []):
+                index = gpu["index"]
+                entries = [
+                    sample["gpus"][index]
+                    for sample in self.samples
+                    if sample.get("available") and len(sample.get("gpus", [])) > index
+                ]
+                gpu["gpu_near_full_seconds"] = sum(
+                    self.interval_seconds
+                    for entry in entries
+                    if entry.get("utilization_gpu_percent", 0.0) >= 85.0
+                )
+                gpu["gpu_near_full_ratio"] = (
+                    gpu["gpu_near_full_seconds"] / (len(entries) * self.interval_seconds)
+                    if entries
+                    else 0.0
+                )
+                gpu["memory_near_full_seconds"] = sum(
+                    self.interval_seconds
+                    for entry in entries
+                    if (
+                        entry.get("memory_total_mb", 0.0) > 0
+                        and entry.get("memory_used_mb", 0.0) / entry.get("memory_total_mb", 1.0) >= 0.85
+                    )
+                )
+                gpu["memory_near_full_ratio"] = (
+                    gpu["memory_near_full_seconds"] / (len(entries) * self.interval_seconds)
+                    if entries
+                    else 0.0
+                )
+        return summary
 
 
 def summarize_gpu_samples(samples: List[Dict[str, Any]], fallback: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -274,6 +308,44 @@ def print_task_breakdown(task_breakdowns: List[Dict[str, Any]]) -> None:
         )
 
 
+def infer_resource_bottleneck(level: Dict[str, Any], gpu_summary: Dict[str, Any]) -> Dict[str, Any]:
+    cpu_near_full_ratio = float(level.get("cpu_near_full_ratio", 0.0))
+    cpu_peak_ratio = float(level.get("peak_cpu_capacity_ratio", 0.0))
+    cpu_average_ratio = float(level.get("average_cpu_capacity_ratio", 0.0))
+
+    primary_gpu = gpu_summary.get("gpus", [{}])[0] if gpu_summary.get("available") and gpu_summary.get("gpus") else {}
+    gpu_near_full_ratio = float(primary_gpu.get("gpu_near_full_ratio", 0.0))
+    gpu_average_util = float(primary_gpu.get("average_gpu_utilization_percent", 0.0))
+    gpu_memory_ratio = (
+        float(primary_gpu.get("peak_memory_used_mb", 0.0)) / float(primary_gpu.get("memory_total_mb", 1.0))
+        if primary_gpu.get("memory_total_mb")
+        else 0.0
+    )
+    gpu_memory_near_full_ratio = float(primary_gpu.get("memory_near_full_ratio", 0.0))
+
+    if gpu_memory_ratio >= 0.9 or gpu_memory_near_full_ratio >= 0.25:
+        classification = "gpu_memory_pressure"
+    elif cpu_near_full_ratio >= 0.25 and gpu_average_util < 60:
+        classification = "cpu_bound"
+    elif gpu_near_full_ratio >= 0.25 and cpu_average_ratio < 0.7:
+        classification = "gpu_bound"
+    elif cpu_peak_ratio >= 0.85 and gpu_near_full_ratio >= 0.25:
+        classification = "mixed_cpu_gpu_pressure"
+    else:
+        classification = "not_obviously_saturated"
+
+    return {
+        "classification": classification,
+        "cpu_peak_capacity_ratio": cpu_peak_ratio,
+        "cpu_average_capacity_ratio": cpu_average_ratio,
+        "cpu_near_full_ratio": cpu_near_full_ratio,
+        "gpu_average_utilization_percent": gpu_average_util,
+        "gpu_near_full_ratio": gpu_near_full_ratio,
+        "gpu_memory_peak_ratio": gpu_memory_ratio,
+        "gpu_memory_near_full_ratio": gpu_memory_near_full_ratio,
+    }
+
+
 def main() -> None:
     args = parse_args()
     if args.chunk_duration <= 0:
@@ -345,6 +417,7 @@ def main() -> None:
             gpu_summary = sampler.stop()
             level = sweep["concurrency_sweep"][0]
             level["gpu_summary"] = gpu_summary
+            level["resource_bottleneck"] = infer_resource_bottleneck(level, gpu_summary)
             playback_window = args.chunk_duration - args.stream_overlap
             task_breakdown = build_task_breakdown(level, playback_window)
             level["task_breakdown"] = task_breakdown
@@ -356,8 +429,12 @@ def main() -> None:
                 f"    first_result={level['first_result_seconds']:.2f}s | "
                 f"p95_completion={level['p95_completion_latency_seconds']:.2f}s | "
                 f"peak RSS={level['peak_tree_rss_mb']:.1f}MB | "
+                f"avg CPU={level['average_cpu_percent']:.0f}%/{level['cpu_capacity_percent']:.0f}% | "
+                f"CPU near-full={level['cpu_near_full_seconds']:.2f}s | "
                 f"peak GPU mem={primary_gpu.get('peak_memory_used_mb', 0):.1f}MB | "
-                f"avg GPU util={primary_gpu.get('average_gpu_utilization_percent', 0):.0f}%"
+                f"avg GPU util={primary_gpu.get('average_gpu_utilization_percent', 0):.0f}% | "
+                f"GPU near-full={primary_gpu.get('gpu_near_full_seconds', 0):.2f}s | "
+                f"bottleneck={level['resource_bottleneck']['classification']}"
             )
             print(
                 f"    p95 stages: inference={_stage_p95(level, 'audio_processing_seconds'):.2f}s | "

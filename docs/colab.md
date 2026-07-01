@@ -94,8 +94,12 @@ This is the recommended script when you want to measure:
 
 - peak process RAM
 - average CPU usage
+- peak CPU usage
+- how long CPU stays near full capacity
 - peak GPU memory
 - average GPU utilization
+- how long GPU stays near full utilization
+- how long GPU memory stays near full capacity
 - the first concurrency level that becomes slower than playback
 
 ### 5.1 Live-capacity benchmark
@@ -140,13 +144,49 @@ What the script does:
 - trims the input WAV to the requested chunk duration
 - runs concurrency 1, 2, 3, 4
 - measures process-tree RAM and CPU
+- samples CPU timeline for the benchmark process and child processes
 - samples `nvidia-smi` during each run
-- writes a JSON report with GPU memory and utilization
+- writes a JSON report with CPU/GPU timelines, saturation ratios, memory, and utilization
 - prints:
   - `max stable concurrency`
   - `first unsafe concurrency`
+  - `CPU near-full`
+  - `GPU near-full`
+  - a coarse resource bottleneck label
 
-### 5.2 Stricter “safe” threshold
+### 5.2 CPU/GPU bottleneck benchmark
+
+Use this when you want to answer:
+
+“is this slow because CPU is preparing/writing audio, or because GPU inference is saturated?”
+
+```python
+!SEPARATION_MODEL_DIR=/content/separation_models \
+OMP_NUM_THREADS=2 \
+MKL_NUM_THREADS=2 \
+OPENBLAS_NUM_THREADS=2 \
+NUMEXPR_NUM_THREADS=2 \
+uv run python scripts/colab_benchmark_resources.py \
+  --engine both \
+  --chunk-duration 10 \
+  --stream-overlap 0 \
+  --concurrency-levels 1,2,4,6,8,10 \
+  --sample-interval 0.25 \
+  --output-dir /content/drive/MyDrive/colab_benchmarks
+```
+
+Read the printed line like this:
+
+- `avg CPU=160%/1200%`: process used about 1.6 CPU cores on a 12-logical-CPU runtime
+- `CPU near-full=0.00s`: CPU was not the machine-wide bottleneck
+- `avg GPU util=25%`: GPU was mostly waiting
+- `GPU near-full=0.50s`: GPU spiked briefly, but was not held saturated
+- `bottleneck=cpu_bound`: CPU was busy while GPU was not saturated
+- `bottleneck=gpu_memory_pressure`: GPU memory is the limit before compute
+- `bottleneck=gpu_bound`: GPU compute stayed high while CPU was not near full
+- `bottleneck=not_obviously_saturated`: the delay is probably in serial overhead, subprocess/model launch, file IO, synchronization, or library overhead
+
+### 5.3 Stricter “safe” threshold
 
 By default, the script uses the exact realtime line:
 

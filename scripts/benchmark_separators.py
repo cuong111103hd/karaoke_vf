@@ -212,22 +212,41 @@ def _cpu_ticks(pid: int) -> Optional[int]:
         return None
 
 
+def _thread_count(pid: int) -> int:
+    try:
+        for line in Path(f"/proc/{pid}/status").read_text().splitlines():
+            if line.startswith("Threads:"):
+                return int(line.split()[1])
+    except (FileNotFoundError, PermissionError, ProcessLookupError, ValueError):
+        pass
+    return 0
+
+
 class ProcessTreeSampler:
     """Samples the benchmark process and all descendants, including Demucs CLI children."""
 
     def __init__(self, interval_seconds: float = 0.02):
         self.root_pid = os.getpid()
         self.interval_seconds = interval_seconds
+        self.logical_cpu_count = os.cpu_count() or 1
         self.baseline_rss_bytes = 0
         self.peak_rss_bytes = 0
         self._first_cpu_ticks: Dict[int, int] = {}
         self._last_cpu_ticks: Dict[int, int] = {}
+        self._previous_cpu_ticks: Dict[int, int] = {}
+        self._previous_sample_time: Optional[float] = None
+        self._started_at: Optional[float] = None
+        self._clock_ticks = os.sysconf("SC_CLK_TCK")
+        self.samples: List[Dict[str, float]] = []
         self._stop = threading.Event()
         self._thread: Optional[threading.Thread] = None
 
     def _sample(self) -> None:
+        now = time.perf_counter()
         pids = _process_tree(self.root_pid)
         total_rss = sum(_rss_bytes(pid) for pid in pids)
+        total_threads = sum(_thread_count(pid) for pid in pids)
+        interval_cpu_seconds = 0.0
         self.peak_rss_bytes = max(self.peak_rss_bytes, total_rss)
         for pid in pids:
             ticks = _cpu_ticks(pid)
@@ -235,38 +254,95 @@ class ProcessTreeSampler:
                 continue
             self._first_cpu_ticks.setdefault(pid, ticks)
             self._last_cpu_ticks[pid] = ticks
+            previous_ticks = self._previous_cpu_ticks.get(pid)
+            if previous_ticks is not None:
+                interval_cpu_seconds += max(0, ticks - previous_ticks) / self._clock_ticks
+            self._previous_cpu_ticks[pid] = ticks
+
+        interval_seconds = max(0.0, now - self._previous_sample_time) if self._previous_sample_time else 0.0
+        interval_cpu_percent = (
+            (interval_cpu_seconds / interval_seconds * 100.0)
+            if interval_seconds > 0
+            else 0.0
+        )
+        self.samples.append(
+            {
+                "elapsed_seconds": now - self._started_at if self._started_at else 0.0,
+                "pid_count": float(len(pids)),
+                "thread_count": float(total_threads),
+                "rss_mb": total_rss / 1024**2,
+                "cpu_percent": interval_cpu_percent,
+                "cpu_capacity_percent": float(self.logical_cpu_count * 100),
+                "cpu_capacity_ratio": (
+                    interval_cpu_percent / (self.logical_cpu_count * 100)
+                    if self.logical_cpu_count > 0
+                    else 0.0
+                ),
+            }
+        )
+        self._previous_sample_time = now
 
     def _run(self) -> None:
         while not self._stop.wait(self.interval_seconds):
             self._sample()
 
     def start(self) -> None:
+        self._started_at = time.perf_counter()
         self._sample()
         self.baseline_rss_bytes = self.peak_rss_bytes
         self._thread = threading.Thread(target=self._run, name="resource-sampler", daemon=True)
         self._thread.start()
 
-    def stop(self, elapsed_seconds: float) -> Dict[str, float]:
+    def stop(self, elapsed_seconds: float) -> Dict[str, Any]:
         self._stop.set()
         if self._thread:
             self._thread.join(timeout=1)
         self._sample()
-        clock_ticks = os.sysconf("SC_CLK_TCK")
         cpu_seconds = sum(
-            max(0, self._last_cpu_ticks[pid] - first_ticks) / clock_ticks
+            max(0, self._last_cpu_ticks[pid] - first_ticks) / self._clock_ticks
             for pid, first_ticks in self._first_cpu_ticks.items()
             if pid in self._last_cpu_ticks
         )
+        cpu_samples = [sample["cpu_percent"] for sample in self.samples]
+        cpu_capacity = self.logical_cpu_count * 100
+        near_full_threshold = cpu_capacity * 0.85
+        cpu_near_full_seconds = sum(
+            self.interval_seconds
+            for sample in self.samples
+            if sample["cpu_percent"] >= near_full_threshold
+        )
+        runnable_samples = [sample["thread_count"] for sample in self.samples]
         return {
             "baseline_rss_mb": self.baseline_rss_bytes / 1024**2,
             "peak_tree_rss_mb": self.peak_rss_bytes / 1024**2,
             "peak_tree_rss_delta_mb": max(0, self.peak_rss_bytes - self.baseline_rss_bytes) / 1024**2,
             "cpu_seconds": cpu_seconds,
             "average_cpu_percent": (cpu_seconds / elapsed_seconds * 100) if elapsed_seconds > 0 else 0.0,
+            "logical_cpu_count": float(self.logical_cpu_count),
+            "cpu_capacity_percent": float(cpu_capacity),
+            "peak_cpu_percent": max(cpu_samples, default=0.0),
+            "average_cpu_capacity_ratio": (
+                (cpu_seconds / elapsed_seconds / self.logical_cpu_count)
+                if elapsed_seconds > 0 and self.logical_cpu_count > 0
+                else 0.0
+            ),
+            "peak_cpu_capacity_ratio": (
+                max(cpu_samples, default=0.0) / cpu_capacity
+                if cpu_capacity > 0
+                else 0.0
+            ),
+            "cpu_near_full_seconds": min(elapsed_seconds, cpu_near_full_seconds),
+            "cpu_near_full_ratio": (
+                min(elapsed_seconds, cpu_near_full_seconds) / elapsed_seconds
+                if elapsed_seconds > 0
+                else 0.0
+            ),
+            "peak_process_tree_threads": max(runnable_samples, default=0.0),
+            "resource_samples": self.samples,
         }
 
 
-def measure_call(function) -> tuple[Any, float, Dict[str, float]]:
+def measure_call(function) -> tuple[Any, float, Dict[str, Any]]:
     sampler = ProcessTreeSampler()
     sampler.start()
     started = time.perf_counter()
