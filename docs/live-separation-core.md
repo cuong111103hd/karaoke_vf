@@ -156,3 +156,37 @@ It is important to distinguish between these two different overlap parameters:
 ## Prerequisites & Limitations
 * **Audio Output backend**: `continuous` mode requires `sounddevice` and system audio libraries (like `libportaudio2` on Linux). If these are not available, the script will log an error.
 * **ffplay Fallback**: If the Python audio backend is not available, you can fall back to the legacy player using `--mode legacy`, which requires `ffplay` in the system path.
+
+---
+
+## YouTube Streaming Live Source Mode
+
+To eliminate the latency of waiting for the full YouTube audio track to download and normalize before separation begins, you can enable the direct streaming live source mode.
+
+### How it Works
+1. **Direct Stream Resolution**: The system uses `yt-dlp` in non-download mode to resolve the YouTube video URL into a direct audio stream URL and retrieve video metadata.
+2. **Continuous Audio Decoding**: The system spawns one continuous `ffmpeg` subprocess reading from the direct stream URL, decoding the stream on-the-fly into 44.1 kHz stereo 16-bit PCM bytes.
+3. **Chunk-by-Chunk WAV Finalization**: A background reader thread accumulates PCM bytes. As soon as enough bytes are buffered for the next planned chunk window, the source writes a finalized WAV file on disk. The separator consumes this file, keeping the downstream separation logic identical.
+
+### Usage
+Run the demo or separation producer with the `--source-mode streaming` flag:
+```bash
+uv run python scripts/run_live_demo.py \
+  -u "https://www.youtube.com/watch?v=dQw4w9WgXcQ" \
+  --source-mode streaming \
+  --initial-buffer-seconds 20.0
+```
+
+### Options
+* **`--source-mode`**: Sets the live source implementation.
+  * `download`: (Default) Downloads the entire video and normalizes the full file before separation begins.
+  * `streaming`: Resolves the direct URL and streams/decodes audio on-the-fly.
+* **`--initial-buffer-seconds`**: The initial buffering duration target before starting the separation of chunk 0. Defaults to `20.0` seconds.
+
+### Timing and Observability
+The JSON manifest records timing markers and durations in the `timing_markers` and `timing_durations` fields:
+* `stream_info_resolve_seconds`: Time taken by `yt-dlp` to extract the stream URL.
+* `ffmpeg_startup_seconds`: Time taken to spawn the `ffmpeg` subprocess.
+* `first_source_chunk_ready_at`: Marker when the first source chunk is successfully finalized.
+* `source_wait_seconds` (in chunk `timing_durations`): The time a chunk had to wait for enough PCM bytes to be buffered from the live stream.
+* `source_teardown_seconds`: The duration for closing background threads and terminating `ffmpeg` gracefully.

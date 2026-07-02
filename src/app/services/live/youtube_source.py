@@ -48,3 +48,15 @@ class YouTubeLiveSource:
         if not self.normalized_path or not self.normalized_path.exists():
             raise RuntimeError("YouTubeLiveSource is not prepared. Call prepare() first.")
         extract_chunk(self.normalized_path, output_path, start, end)
+
+    def start(self) -> None:
+        """No-op for download mode."""
+        pass
+
+    def wait_for_chunk(self, index: int, start: float, end: float, output_path: Path) -> None:
+        """Delegates to extract_source_chunk in download mode."""
+        self.extract_source_chunk(start, end, output_path)
+
+    def stop(self) -> None:
+        """No-op for download mode."""
+        pass

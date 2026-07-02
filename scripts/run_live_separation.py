@@ -22,6 +22,13 @@ def main() -> None:
     parser.add_argument("-m", "--model", help=f"Demucs model name (default: {settings.DEMUCS_MODEL_NAME})")
     parser.add_argument("-f", "--format", help=f"Output format: wav, mp3, etc. (default: {settings.OUTPUT_FORMAT})")
     parser.add_argument("--max-chunks", type=int, help="Max chunks to process for debugging")
+    parser.add_argument("--source-mode", default="download", choices=["download", "streaming"], help="Live source mode (default: download)")
+    parser.add_argument(
+        "--initial-buffer-seconds",
+        type=float,
+        default=20.0,
+        help="Streaming source startup buffer setting; chunks process when their chunk window is available (default: 20.0)",
+    )
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose logging")
     
     args = parser.parse_args()
@@ -42,7 +49,9 @@ def main() -> None:
         model_name=args.model,
         output_format=args.format,
         max_chunks=args.max_chunks,
-        output_dir=args.output_dir
+        output_dir=args.output_dir,
+        source_mode=args.source_mode,
+        initial_buffer_seconds=args.initial_buffer_seconds
     )
     
     try:

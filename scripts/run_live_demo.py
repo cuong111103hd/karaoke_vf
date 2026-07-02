@@ -15,6 +15,13 @@ def main() -> None:
     parser.add_argument("-f", "--format", default="wav", help="Output format")
     parser.add_argument("--mode", choices=["continuous", "legacy"], default="continuous", help="Playback mode (default: continuous)")
     parser.add_argument("--min-ready-chunks", type=int, default=1, help="Minimum ready chunks required before starting playback (default: 1)")
+    parser.add_argument("--source-mode", default="download", choices=["download", "streaming"], help="Live source mode (default: download)")
+    parser.add_argument(
+        "--initial-buffer-seconds",
+        type=float,
+        default=20.0,
+        help="Streaming source startup buffer setting; chunks process when their chunk window is available (default: 20.0)",
+    )
     
     args = parser.parse_args()
     
@@ -56,7 +63,9 @@ def main() -> None:
         "-j", job_id,
         "-c", str(args.chunk_duration),
         "-ov", str(args.overlap),
-        "-f", args.format
+        "-f", args.format,
+        "--source-mode", args.source_mode,
+        "--initial-buffer-seconds", str(args.initial_buffer_seconds)
     ]
     if args.max_chunks:
         producer_args.extend(["--max-chunks", str(args.max_chunks)])

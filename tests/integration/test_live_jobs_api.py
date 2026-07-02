@@ -47,7 +47,9 @@ async def test_live_jobs_api_endpoints(tmp_path, monkeypatch) -> None:
                     "chunk_duration": 30.0,
                     "overlap": 2.0,
                     "separator_engine": "mdx_onnx",
-                    "model_name": "UVR_MDXNET_KARA_2.onnx"
+                    "model_name": "UVR_MDXNET_KARA_2.onnx",
+                    "source_mode": "streaming",
+                    "initial_buffer_seconds": 15.0
                 })
                 assert response.status_code == 201
                 data = response.json()
@@ -59,14 +61,18 @@ async def test_live_jobs_api_endpoints(tmp_path, monkeypatch) -> None:
                 assert data["overlap"] == 2.0
                 assert data["separator_engine"] == "mdx_onnx"
                 assert data["model_name"] == "UVR_MDXNET_KARA_2.onnx"
+                assert data["source_mode"] == "streaming"
+                assert data["initial_buffer_seconds"] == 15.0
                 mock_submit.assert_called_once()
-
+ 
                 response = await client.get(f"/api/live-jobs/{job_id}")
                 assert response.status_code == 200
                 data = response.json()
                 assert data["job_id"] == job_id
                 assert data["manifest_path"].endswith(f"{job_id}/live/live_manifest.json")
                 assert data["status"] in ("queued", "active", "completed")
+                assert data["source_mode"] == "streaming"
+                assert data["initial_buffer_seconds"] == 15.0
                 assert data["chunks"] == []
 
                 response = await client.get("/api/live-jobs")

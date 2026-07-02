@@ -16,7 +16,7 @@ from app.services.live.models import (
 )
 from app.services.live.manifest import write_live_manifest
 from app.services.live.scheduler import calculate_next_chunk
-from app.services.live.youtube_source import YouTubeLiveSource
+from app.services.live.source_factory import get_live_source
 from app.storage.paths import (
     ensure_live_workspace,
     get_live_manifest_path,
@@ -72,10 +72,11 @@ def run_live_separation(
     
     total_start = time.time()
     
+    source = None
     try:
         # Prepare source
         logger.info(f"[{job_id}] Preparing YouTube live source...")
-        source = YouTubeLiveSource(options.youtube_url, job_id)
+        source = get_live_source(options.youtube_url, job_id, options)
         source_started_at = time.time()
         record_marker(manifest.timing_markers, "source_prepare_started_at", source_started_at)
         _, _, source_markers, source_durations = source.prepare()
@@ -91,8 +92,16 @@ def run_live_separation(
         manifest.metadata = source.metadata
         write_live_manifest(manifest, manifest_path)
         
-        video_duration = manifest.video_duration or 0.0
-        logger.info(f"[{job_id}] Live source ready: '{manifest.video_title}' ({video_duration:.2f}s)")
+        video_duration = manifest.video_duration
+        if video_duration is None:
+            if options.max_chunks is None:
+                raise ValueError("YouTube stream duration unavailable; provide max_chunks or use source_mode=download.")
+            logger.info(f"[{job_id}] Live source ready: '{manifest.video_title}' (duration unavailable, running with max_chunks={options.max_chunks})")
+        else:
+            logger.info(f"[{job_id}] Live source ready: '{manifest.video_title}' ({video_duration:.2f}s)")
+        
+        # Start source stream/decoding
+        source.start()
         
         while True:
             # Check max_chunks limit
@@ -132,10 +141,13 @@ def run_live_separation(
                 # Extract chunk from normalized source
                 extract_started_at = time.time()
                 record_marker(chunk_meta.timing_markers, "audio_extract_started_at", extract_started_at)
-                source.extract_source_chunk(start, end, source_chunk_path)
+                source.wait_for_chunk(index, start, end, source_chunk_path)
                 extract_completed_at = time.time()
                 record_marker(chunk_meta.timing_markers, "audio_extract_completed_at", extract_completed_at)
                 record_duration(chunk_meta.timing_durations, "audio_extract_seconds", extract_started_at, extract_completed_at)
+                
+                if hasattr(source, "chunk_wait_durations") and index in source.chunk_wait_durations:
+                    chunk_meta.timing_durations["source_wait_seconds"] = source.chunk_wait_durations[index]
                 
                 # Separate chunk
                 demucs_chunk_dir.mkdir(parents=True, exist_ok=True)
@@ -150,24 +162,32 @@ def run_live_separation(
                     chunk_meta.timing_markers,
                     chunk_meta.timing_durations,
                     separation_started_at,
-                    separation_output.profiling,
+                    separation_output.profiling or {},
                 )
-                no_vocals_wav = separation_output.instrumental_path
                 
-                # Copy or convert to final location
-                finalize_started_at = time.time()
-                record_marker(chunk_meta.timing_markers, "finalize_output_started_at", finalize_started_at)
-                if output_format.lower() == "wav":
-                    shutil.copy2(no_vocals_wav, inst_chunk_path)
-                else:
-                    convert_audio(no_vocals_wav, inst_chunk_path)
-                finalize_completed_at = time.time()
-                record_marker(chunk_meta.timing_markers, "finalize_output_completed_at", finalize_completed_at)
-                record_duration(chunk_meta.timing_durations, "finalize_output_seconds", finalize_started_at, finalize_completed_at)
+                # Verify outputs exist
+                inst_output = separation_output.instrumental_path
+                if not inst_output or not inst_output.exists():
+                    raise RuntimeError(f"Separation output missing instrumental file: {inst_output}")
                     
-                # Update chunk metadata in manifest to READY
+                # Export chunk to final destination format
+                export_started_at = time.time()
+                record_marker(chunk_meta.timing_markers, "export_started_at", export_started_at)
+                if output_format.lower() == "wav":
+                    shutil.copy2(inst_output, inst_chunk_path)
+                else:
+                    convert_audio(inst_output, inst_chunk_path)
+                export_completed_at = time.time()
+                record_marker(chunk_meta.timing_markers, "export_completed_at", export_completed_at)
+                record_duration(chunk_meta.timing_durations, "export_seconds", export_started_at, export_completed_at)
+                
+                # Discard buffer before next chunk start to save memory
+                if hasattr(source, "discard_before"):
+                    next_start = (index + 1) * (options.chunk_duration - options.overlap)
+                    source.discard_before(next_start)
+                
+                # Mark chunk as READY
                 chunk_meta.status = LiveChunkStatus.READY
-                chunk_meta.demucs_output_dir = str(demucs_chunk_dir)
                 chunk_meta.instrumental_path = str(inst_chunk_path)
                 chunk_meta.processing_seconds = time.time() - chunk_start_time
                 record_marker(chunk_meta.timing_markers, "chunk_ready_at", time.time())
@@ -235,6 +255,15 @@ def run_live_separation(
         )
         write_live_manifest(manifest, manifest_path)
         raise e
+    finally:
+        if source:
+            source.stop()
+            # Update timing markers/durations from the source if any
+            if hasattr(source, "timing_markers"):
+                manifest.timing_markers.update(source.timing_markers)
+            if hasattr(source, "timing_durations"):
+                manifest.timing_durations.update(source.timing_durations)
+            write_live_manifest(manifest, manifest_path)
         
     elapsed = time.time() - total_start
     return LiveProducerResult(

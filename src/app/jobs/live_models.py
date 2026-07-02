@@ -14,6 +14,8 @@ class LiveJobRecord(BaseModel):
     separator_engine: Optional[str] = None
     model_name: Optional[str] = None
     output_format: str
+    source_mode: str = "download"
+    initial_buffer_seconds: float = 20.0
     timing_markers: Dict[str, float] = {}
     timing_durations: Dict[str, float] = {}
     engine_timing_profile: Dict[str, Any] = {}

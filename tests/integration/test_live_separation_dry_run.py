@@ -44,8 +44,9 @@ def test_live_separation_dry_run(tmp_path, monkeypatch) -> None:
         
     mock_source = MagicMock()
     mock_source.metadata = dummy_youtube_meta
+    mock_source.prepare.return_value = (None, dummy_youtube_meta, {}, {})
     
-    with patch("app.services.live.service.YouTubeLiveSource", return_value=mock_source), \
+    with patch("app.services.live.service.get_live_source", return_value=mock_source), \
          patch("app.services.live.service.get_separation_engine", return_value=mock_engine) as mock_get_engine:
          
          options = LiveOptions(

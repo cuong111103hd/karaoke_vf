@@ -27,6 +27,7 @@ def test_live_first_ready_log(caplog, monkeypatch, tmp_path) -> None:
     
     mock_source = MagicMock()
     mock_source.metadata = {"title": "Test Title", "duration": 15.0}
+    mock_source.prepare.return_value = (None, mock_source.metadata, {}, {})
     
     mock_engine = MagicMock()
     mock_engine.engine_name = "demucs"
@@ -38,7 +39,7 @@ def test_live_first_ready_log(caplog, monkeypatch, tmp_path) -> None:
     
     mock_engine.separate.return_value = SeparationOutput(instrumental_path=dummy_wav)
     
-    with patch("app.services.live.service.YouTubeLiveSource", return_value=mock_source), \
+    with patch("app.services.live.service.get_live_source", return_value=mock_source), \
          patch("app.services.live.service.get_separation_engine", return_value=mock_engine), \
          patch("app.services.live.service.shutil.copy2"), \
          patch("app.services.live.service.ensure_live_workspace"):
@@ -53,3 +54,70 @@ def test_live_first_ready_log(caplog, monkeypatch, tmp_path) -> None:
             assert "test-log-job" in ready_log[0]
             assert "play_live_chunks.py" in ready_log[0]
             assert "live_manifest.json" in ready_log[0]
+
+def test_live_separation_missing_duration_fails(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    from app.config.settings import Settings
+    custom_settings = Settings()
+    import app.storage.paths
+    monkeypatch.setattr(app.storage.paths, "settings", custom_settings)
+    
+    # Options without max_chunks
+    options = LiveOptions(
+        youtube_url="https://youtube.com/watch?v=abc",
+        chunk_duration=10.0,
+        max_chunks=None
+    )
+    
+    mock_source = MagicMock()
+    # Missing duration
+    mock_source.metadata = {"title": "Test Title", "duration": None}
+    mock_source.prepare.return_value = (None, mock_source.metadata, {}, {})
+    
+    mock_engine = MagicMock()
+    mock_engine.engine_name = "demucs"
+    mock_engine.model_name = "htdemucs"
+    
+    with patch("app.services.live.service.get_live_source", return_value=mock_source), \
+         patch("app.services.live.service.get_separation_engine", return_value=mock_engine), \
+         patch("app.services.live.service.ensure_live_workspace"):
+         
+        with pytest.raises(ValueError) as exc_info:
+            run_live_separation(options, job_id="test-fail-job")
+            
+        assert "YouTube stream duration unavailable" in str(exc_info.value)
+
+def test_live_separation_missing_duration_succeeds_with_max_chunks(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    from app.config.settings import Settings
+    custom_settings = Settings()
+    import app.storage.paths
+    monkeypatch.setattr(app.storage.paths, "settings", custom_settings)
+    
+    # Options with max_chunks
+    options = LiveOptions(
+        youtube_url="https://youtube.com/watch?v=abc",
+        chunk_duration=10.0,
+        max_chunks=2
+    )
+    
+    mock_source = MagicMock()
+    # Missing duration
+    mock_source.metadata = {"title": "Test Title", "duration": None}
+    mock_source.prepare.return_value = (None, mock_source.metadata, {}, {})
+    
+    mock_engine = MagicMock()
+    mock_engine.engine_name = "demucs"
+    mock_engine.model_name = "htdemucs"
+    from app.services.separation.contracts import SeparationOutput
+    dummy_wav = tmp_path / "no_vocals.wav"
+    dummy_wav.write_text("dummy")
+    mock_engine.separate.return_value = SeparationOutput(instrumental_path=dummy_wav)
+    
+    with patch("app.services.live.service.get_live_source", return_value=mock_source), \
+         patch("app.services.live.service.get_separation_engine", return_value=mock_engine), \
+         patch("app.services.live.service.shutil.copy2"), \
+         patch("app.services.live.service.ensure_live_workspace"):
+         
+        result = run_live_separation(options, job_id="test-success-job")
+        assert result.total_chunks == 2

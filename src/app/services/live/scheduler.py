@@ -3,7 +3,7 @@ from app.services.live.models import LiveManifest, LiveChunkStatus
 
 def calculate_next_chunk(
     manifest: LiveManifest,
-    source_duration: float
+    source_duration: Optional[float]
 ) -> Optional[Tuple[int, float, float]]:
     """
     Determines the next chunk index, start_seconds, and end_seconds to process.
@@ -26,6 +26,11 @@ def calculate_next_chunk(
             next_index = max_idx
             
     start = next_index * step
+    
+    if source_duration is None:
+        end = start + chunk_duration
+        return next_index, start, end
+        
     if start >= source_duration:
         return None
         

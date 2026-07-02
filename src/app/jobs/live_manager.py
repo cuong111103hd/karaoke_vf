@@ -43,7 +43,9 @@ class LiveJobManager:
                 max_chunks=request.max_chunks,
                 separator_engine=effective_engine_name,
                 model_name=effective_model_name,
-                output_format=request.output_format
+                output_format=request.output_format,
+                source_mode=request.source_mode,
+                initial_buffer_seconds=request.initial_buffer_seconds
             )
         except ValueError as e:
             raise e
@@ -60,6 +62,8 @@ class LiveJobManager:
             separator_engine=effective_engine_name,
             model_name=effective_model_name,
             output_format=request.output_format,
+            source_mode=request.source_mode,
+            initial_buffer_seconds=request.initial_buffer_seconds,
             timing_markers={
                 "request_received_at": time.time(),
             },
@@ -91,6 +95,8 @@ class LiveJobManager:
             separator_engine=record.separator_engine,
             model_name=record.model_name,
             output_format=record.output_format,
+            source_mode=record.source_mode,
+            initial_buffer_seconds=record.initial_buffer_seconds,
             timing_markers=record.timing_markers,
             timing_durations=record.timing_durations,
             engine_timing_profile=record.engine_timing_profile,
@@ -143,6 +149,8 @@ class LiveJobManager:
                     separator_engine=record.separator_engine or manifest.separator_engine,
                     model_name=record.model_name,
                     output_format=record.output_format,
+                    source_mode=record.source_mode,
+                    initial_buffer_seconds=record.initial_buffer_seconds,
                     video_title=manifest.video_title,
                     video_duration=manifest.video_duration,
                     error_message=manifest.error_message,
@@ -167,6 +175,8 @@ class LiveJobManager:
             separator_engine=record.separator_engine,
             model_name=record.model_name,
             output_format=record.output_format,
+            source_mode=record.source_mode,
+            initial_buffer_seconds=record.initial_buffer_seconds,
             error_message=record.error_message,
             timing_markers=record.timing_markers,
             timing_durations=record.timing_durations,

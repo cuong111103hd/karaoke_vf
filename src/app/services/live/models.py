@@ -22,6 +22,8 @@ class LiveOptions(BaseModel):
     output_format: Optional[str] = None
     max_chunks: Optional[int] = None
     output_dir: Optional[str] = None
+    source_mode: str = "download"
+    initial_buffer_seconds: float = 20.0
 
     @model_validator(mode="after")
     def validate_durations(self) -> 'LiveOptions':
@@ -33,6 +35,10 @@ class LiveOptions(BaseModel):
             raise ValueError("overlap must be smaller than chunk_duration")
         if self.max_chunks is not None and self.max_chunks <= 0:
             raise ValueError("max_chunks must be greater than zero")
+        if self.source_mode not in ("download", "streaming"):
+            raise ValueError("source_mode must be either 'download' or 'streaming'")
+        if self.initial_buffer_seconds <= 0:
+            raise ValueError("initial_buffer_seconds must be greater than zero")
         return self
 
 class LiveChunkMetadata(BaseModel):

@@ -4,11 +4,15 @@
 TBD - created by archiving change add-core-youtube-live-separation. Update Purpose after archive.
 ## Requirements
 ### Requirement: Live producer accepts YouTube URL
-The system SHALL provide a core live separation producer that accepts a YouTube URL and creates a live workspace.
+The system SHALL provide a core live separation producer that accepts a YouTube URL and creates a live workspace, and the server-side live job path SHALL be able to delay producer start until capacity is available.
 
-#### Scenario: Start live producer
+#### Scenario: Start live producer directly
 - **WHEN** a user runs the live producer CLI with a YouTube URL
 - **THEN** the system creates a live workspace and initializes `live_manifest.json`
+
+#### Scenario: Live job waits for server capacity
+- **WHEN** a live separation request is accepted by the server while all separation worker slots are occupied
+- **THEN** the system keeps the live job queued and does not start source preparation or chunk separation until capacity is granted
 
 ### Requirement: Live producer creates source chunks
 The system SHALL create sequential source audio chunks for live separation.
@@ -18,11 +22,15 @@ The system SHALL create sequential source audio chunks for live separation.
 - **THEN** the system writes a deterministic source chunk file and records it in the manifest
 
 ### Requirement: Live producer separates chunks
-The system SHALL run Demucs independently for each source chunk and store the resulting instrumental chunk.
+The system SHALL submit each source chunk to the selected separation engine and store the resulting instrumental chunk without depending on an engine-specific output directory layout.
 
 #### Scenario: Instrumental chunk becomes ready
-- **WHEN** Demucs completes successfully for a source chunk
-- **THEN** the system writes the instrumental chunk and marks the chunk ready in the manifest
+- **WHEN** the selected separation engine completes successfully for a source chunk
+- **THEN** the system writes the returned instrumental chunk and marks the chunk ready in the manifest
+
+#### Scenario: Selected engine fails
+- **WHEN** the selected separation engine fails to load its model, run inference, or produce an instrumental artifact
+- **THEN** the system marks the chunk and live stream failed with an actionable separation error
 
 ### Requirement: Live producer logs first-ready playback command
 The system MUST log a clear first-ready message when the first instrumental chunk is ready.

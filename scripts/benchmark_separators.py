@@ -629,6 +629,7 @@ def run_benchmark_concurrency_for_engine(
             start_gate.wait()
             t_start = time.perf_counter()
             started_offsets[t_index] = t_start - wall_start
+            started_offsets[t_index] = t_start - wall_start
             try:
                 output = engine_instance.separate(input_path, t_output_dir)
                 stage_profiles[t_index] = output.profiling or {}
