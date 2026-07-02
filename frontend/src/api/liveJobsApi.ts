@@ -10,6 +10,8 @@ export async function createLiveJob(data: {
   separator_engine?: string;
   model_name?: string;
   output_format: string;
+  source_mode?: 'download' | 'streaming';
+  initial_buffer_seconds?: number;
 }): Promise<LiveJob> {
   const response = await fetch(`${API_BASE}/live-jobs`, {
     method: 'POST',

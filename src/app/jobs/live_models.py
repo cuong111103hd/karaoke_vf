@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Any, Dict, Optional
+from app.config.settings import settings
 
 class LiveJobRecord(BaseModel):
     job_id: str
@@ -14,7 +15,7 @@ class LiveJobRecord(BaseModel):
     separator_engine: Optional[str] = None
     model_name: Optional[str] = None
     output_format: str
-    source_mode: str = "download"
+    source_mode: str = settings.LIVE_SOURCE_MODE
     initial_buffer_seconds: float = 20.0
     timing_markers: Dict[str, float] = {}
     timing_durations: Dict[str, float] = {}

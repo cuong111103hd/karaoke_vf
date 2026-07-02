@@ -11,6 +11,7 @@ export function useLivePlayback(job: LiveJob | null) {
   const [error, setError] = useState<PlayerError | null>(null);
   const [currentChunkIndex, setCurrentChunkIndex] = useState<number | null>(null);
   const [bufferedChunks, setBufferedChunks] = useState<number[]>([]);
+  const [playheadSeconds, setPlayheadSeconds] = useState<number>(0);
 
   // WebAudio references
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -21,9 +22,13 @@ export function useLivePlayback(job: LiveJob | null) {
   const isArmedRef = useRef<boolean>(false);
   const nextIndexRef = useRef<number>(0);
   const lastChunkEndTimeRef = useRef<number | null>(null);
+  const lastDisplayEndTimeRef = useRef<number | null>(null);
+  const playbackClockStartTimeRef = useRef<number | null>(null);
+  const activeChunkIndexRef = useRef<number | null>(null);
 
   // Keep track of which indices we're currently fetching to avoid duplicates
   const fetchingIndicesRef = useRef<Set<number>>(new Set());
+  const animationFrameIdRef = useRef<number | null>(null);
 
   // Keep track of active timeouts for UI updates & completion
   const timeoutsRef = useRef<number[]>([]);
@@ -39,10 +44,19 @@ export function useLivePlayback(job: LiveJob | null) {
     timeoutsRef.current = [];
   }, []);
 
+  const cancelAnimation = useCallback(() => {
+    if (animationFrameIdRef.current !== null) {
+      cancelAnimationFrame(animationFrameIdRef.current);
+      animationFrameIdRef.current = null;
+    }
+  }, []);
+
   // Stop playback and release resources
   const stop = useCallback(() => {
     isArmedRef.current = false;
     clearAllTimeouts();
+    cancelAnimation();
+    setPlayheadSeconds(0);
 
     // Stop all scheduled WebAudio nodes
     scheduledChunksRef.current.forEach((sc) => {
@@ -59,11 +73,14 @@ export function useLivePlayback(job: LiveJob | null) {
     // Reset scheduling refs
     nextIndexRef.current = 0;
     lastChunkEndTimeRef.current = null;
+    lastDisplayEndTimeRef.current = null;
+    playbackClockStartTimeRef.current = null;
+    activeChunkIndexRef.current = null;
 
     // Transition state
     setPlaybackState('stopped');
     setCurrentChunkIndex(null);
-  }, [clearAllTimeouts]);
+  }, [clearAllTimeouts, cancelAnimation]);
 
   // Completely reset the cache (when selecting a new job)
   const resetCache = useCallback(() => {
@@ -72,6 +89,7 @@ export function useLivePlayback(job: LiveJob | null) {
     fetchingIndicesRef.current.clear();
     setBufferedChunks([]);
     setError(null);
+    setPlayheadSeconds(0);
     setPlaybackState('idle');
   }, [stop]);
 
@@ -142,6 +160,15 @@ export function useLivePlayback(job: LiveJob | null) {
           isFirst: chunkIndex === 0,
           hasNext,
         });
+        const displayStartTime =
+          lastDisplayEndTimeRef.current === null
+            ? 0
+            : Math.max(0, lastDisplayEndTimeRef.current - (job?.overlap || 0));
+        const displayEndTime = displayStartTime + plan.playDuration;
+        if (playbackClockStartTimeRef.current === null) {
+          playbackClockStartTimeRef.current = plan.playStartTime;
+          setPlayheadSeconds(0);
+        }
 
         // Create WebAudio Nodes
         const sourceNode = audioContext.createBufferSource();
@@ -164,11 +191,14 @@ export function useLivePlayback(job: LiveJob | null) {
           gainNode,
           scheduledStartTime: plan.playStartTime,
           scheduledEndTime: plan.playStartTime + plan.playDuration,
+          displayStartTime,
+          displayEndTime,
           duration: plan.playDuration,
         });
 
         // Update schedule metrics
         lastChunkEndTimeRef.current = plan.playStartTime + plan.playDuration;
+        lastDisplayEndTimeRef.current = displayEndTime;
         nextIndexRef.current = chunkIndex + 1;
 
         // Transition states
@@ -177,6 +207,7 @@ export function useLivePlayback(job: LiveJob | null) {
         // Schedule UI update for when this chunk starts playing
         const timeToStartMs = Math.max(0, (plan.playStartTime - now) * 1000);
         addTimeout(() => {
+          activeChunkIndexRef.current = chunkIndex;
           setCurrentChunkIndex(chunkIndex);
         }, timeToStartMs);
 
@@ -184,6 +215,8 @@ export function useLivePlayback(job: LiveJob | null) {
         if (!hasNext) {
           const timeToEndMs = Math.max(0, (plan.playStartTime + plan.playDuration - now) * 1000);
           addTimeout(() => {
+            activeChunkIndexRef.current = null;
+            setPlayheadSeconds(displayEndTime);
             setPlaybackState('completed');
             isArmedRef.current = false;
           }, timeToEndMs);
@@ -310,10 +343,73 @@ export function useLivePlayback(job: LiveJob | null) {
     });
   }, [job, runSchedulerTick, resetCache, stop]);
 
+  // Animation frame loop for smooth playhead updates
+  useEffect(() => {
+    const canTrackPlayhead =
+      playbackState === 'playing' ||
+      playbackState === 'waiting_next_chunk' ||
+      playbackState === 'buffering';
+
+    if (!canTrackPlayhead || !audioContextRef.current || !isArmedRef.current) {
+      cancelAnimation();
+      return;
+    }
+
+    const updatePlayhead = () => {
+      const audioContext = audioContextRef.current;
+      if (audioContext && isArmedRef.current) {
+        const now = audioContext.currentTime;
+        const clockStartTime = playbackClockStartTimeRef.current;
+        if (clockStartTime !== null) {
+          const maxKnownEnd = lastDisplayEndTimeRef.current ?? Number.POSITIVE_INFINITY;
+          const elapsedFromFirstScheduledChunk = Math.max(0, now - clockStartTime);
+          setPlayheadSeconds(Math.min(maxKnownEnd, elapsedFromFirstScheduledChunk));
+        }
+
+        let activeScheduled: ScheduledChunk | null = null;
+
+        const activeIndex = activeChunkIndexRef.current;
+        if (activeIndex !== null) {
+          const scheduled = scheduledChunksRef.current.get(activeIndex);
+          if (scheduled && now >= scheduled.scheduledStartTime && now <= scheduled.scheduledEndTime) {
+            activeScheduled = scheduled;
+          }
+        }
+
+        if (!activeScheduled) {
+          // Find the active scheduled chunk, preferring higher index during crossfades.
+          const entries = Array.from(scheduledChunksRef.current.entries()).sort((a, b) => b[0] - a[0]);
+          for (const [, sc] of entries) {
+            if (now >= sc.scheduledStartTime && now <= sc.scheduledEndTime) {
+              activeScheduled = sc;
+              activeChunkIndexRef.current = sc.index;
+              break;
+            }
+          }
+        }
+
+        if (activeScheduled) {
+          const elapsed = now - activeScheduled.scheduledStartTime;
+          const calculated = activeScheduled.displayStartTime + elapsed;
+          const clamped = Math.max(
+            activeScheduled.displayStartTime,
+            Math.min(activeScheduled.displayEndTime, calculated)
+          );
+          setPlayheadSeconds(clamped);
+        }
+      }
+      animationFrameIdRef.current = requestAnimationFrame(updatePlayhead);
+    };
+
+    animationFrameIdRef.current = requestAnimationFrame(updatePlayhead);
+    return () => cancelAnimation();
+  }, [playbackState, cancelAnimation]);
+
   // Clean up on unmount
   useEffect(() => {
     return () => {
       stop();
+      cancelAnimation();
       if (audioContextRef.current) {
         audioContextRef.current.close().catch((err) => {
           console.error('Error closing AudioContext on unmount:', err);
@@ -321,13 +417,14 @@ export function useLivePlayback(job: LiveJob | null) {
         audioContextRef.current = null;
       }
     };
-  }, [stop]);
+  }, [stop, cancelAnimation]);
 
   return {
     playbackState,
     error,
     currentChunkIndex,
     bufferedChunks,
+    playheadSeconds,
     play,
     stop,
   };

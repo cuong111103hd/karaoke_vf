@@ -26,11 +26,15 @@ class Settings:
         self.MAX_CONCURRENT_SEPARATION_JOBS = int(os.getenv("MAX_CONCURRENT_SEPARATION_JOBS", "1"))
         self.MAX_QUEUE_SIZE = int(os.getenv("MAX_QUEUE_SIZE", "50"))
 
+        self.LIVE_SOURCE_MODE = os.getenv("LIVE_SOURCE_MODE", "streaming").lower()
+
         self.HOST = os.getenv("HOST", "127.0.0.1")
         self.PORT = int(os.getenv("PORT", "8000"))
 
         if self.SEPARATION_ENGINE not in ("demucs", "mdx_onnx"):
             raise ValueError(f"Invalid SEPARATION_ENGINE: {self.SEPARATION_ENGINE}. Must be 'demucs' or 'mdx_onnx'.")
+        if self.LIVE_SOURCE_MODE not in ("download", "streaming"):
+            raise ValueError(f"Invalid LIVE_SOURCE_MODE: {self.LIVE_SOURCE_MODE}. Must be 'download' or 'streaming'.")
         if self.MDX_SEGMENT_SIZE <= 0:
             raise ValueError("MDX_SEGMENT_SIZE must be greater than zero.")
         if not 0 < self.MDX_OVERLAP < 1:

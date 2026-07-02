@@ -118,7 +118,7 @@ function App() {
   return (
     <div className="app-layout">
       <header className="app-header">
-        <h1 className="app-title-gradient">Karaoke Live Separation Dashboard</h1>
+        <h1 className="app-title">Karaoke Live Separation Dashboard</h1>
         <p className="app-subtitle">
           Monitor YouTube-to-karaoke audio slicing and isolated instrumental progress in real-time.
         </p>

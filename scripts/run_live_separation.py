@@ -22,7 +22,12 @@ def main() -> None:
     parser.add_argument("-m", "--model", help=f"Demucs model name (default: {settings.DEMUCS_MODEL_NAME})")
     parser.add_argument("-f", "--format", help=f"Output format: wav, mp3, etc. (default: {settings.OUTPUT_FORMAT})")
     parser.add_argument("--max-chunks", type=int, help="Max chunks to process for debugging")
-    parser.add_argument("--source-mode", default="download", choices=["download", "streaming"], help="Live source mode (default: download)")
+    parser.add_argument(
+        "--source-mode",
+        default=settings.LIVE_SOURCE_MODE,
+        choices=["download", "streaming"],
+        help=f"Live source mode (default: {settings.LIVE_SOURCE_MODE})",
+    )
     parser.add_argument(
         "--initial-buffer-seconds",
         type=float,

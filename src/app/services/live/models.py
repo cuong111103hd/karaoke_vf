@@ -1,6 +1,7 @@
 from pydantic import BaseModel, model_validator
 from typing import Optional, Dict, Any, List
 from enum import Enum
+from app.config.settings import settings
 
 class LiveStreamStatus(str, Enum):
     ACTIVE = "active"
@@ -22,7 +23,7 @@ class LiveOptions(BaseModel):
     output_format: Optional[str] = None
     max_chunks: Optional[int] = None
     output_dir: Optional[str] = None
-    source_mode: str = "download"
+    source_mode: str = settings.LIVE_SOURCE_MODE
     initial_buffer_seconds: float = 20.0
 
     @model_validator(mode="after")

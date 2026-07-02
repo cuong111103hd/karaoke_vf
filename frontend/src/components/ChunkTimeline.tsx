@@ -58,7 +58,7 @@ export const ChunkTimeline: React.FC<ChunkTimelineProps> = ({ chunks }) => {
                     </span>
                   )}
                   {chunk.status === 'processing' && (
-                    <span className="text-processing animate-pulse">Running Demucs...</span>
+                    <span className="text-processing animate-pulse">Processing...</span>
                   )}
                   {chunk.status === 'pending' && (
                     <span className="text-pending">Queued</span>

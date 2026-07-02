@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Any, Dict, Optional, List
+from app.config.settings import settings
 
 class JobCreateRequest(BaseModel):
     youtube_url: str = Field(..., description="The YouTube video URL to separate.")
@@ -12,7 +13,7 @@ class LiveJobCreateRequest(BaseModel):
     separator_engine: Optional[str] = Field(None, description="Separator engine: demucs or mdx_onnx.")
     model_name: Optional[str] = Field(None, description="Demucs model name.")
     output_format: str = Field("wav", description="Output format (wav, mp3, etc.).")
-    source_mode: str = Field("download", description="Live source mode (download or streaming).")
+    source_mode: str = Field(settings.LIVE_SOURCE_MODE, description="Live source mode (download or streaming).")
     initial_buffer_seconds: float = Field(
         20.0,
         description="Streaming source startup buffer setting; source chunks are processed when each chunk window is available.",
@@ -43,7 +44,7 @@ class LiveJobResponse(BaseModel):
     separator_engine: Optional[str] = None
     model_name: Optional[str] = None
     output_format: str
-    source_mode: str = "download"
+    source_mode: str = settings.LIVE_SOURCE_MODE
     initial_buffer_seconds: float = 20.0
     video_title: Optional[str] = None
     video_duration: Optional[float] = None

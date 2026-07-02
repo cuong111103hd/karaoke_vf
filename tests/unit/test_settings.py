@@ -16,6 +16,7 @@ SETTING_KEYS = (
     "MDX_SEGMENT_SIZE",
     "MDX_OVERLAP",
     "MDX_BATCH_SIZE",
+    "LIVE_SOURCE_MODE",
 )
 
 
@@ -41,6 +42,7 @@ def test_settings_defaults(monkeypatch, tmp_path) -> None:
     assert settings.MDX_SEGMENT_SIZE == 256
     assert settings.MDX_OVERLAP == 0.25
     assert settings.MDX_BATCH_SIZE == 1
+    assert settings.LIVE_SOURCE_MODE == "streaming"
 
 
 def test_settings_overrides(monkeypatch, tmp_path) -> None:
@@ -54,6 +56,7 @@ def test_settings_overrides(monkeypatch, tmp_path) -> None:
     monkeypatch.setenv("MDX_SEGMENT_SIZE", "512")
     monkeypatch.setenv("MDX_OVERLAP", "0.5")
     monkeypatch.setenv("MDX_BATCH_SIZE", "4")
+    monkeypatch.setenv("LIVE_SOURCE_MODE", "download")
 
     settings = Settings()
 
@@ -66,11 +69,18 @@ def test_settings_overrides(monkeypatch, tmp_path) -> None:
     assert settings.MDX_SEGMENT_SIZE == 512
     assert settings.MDX_OVERLAP == 0.5
     assert settings.MDX_BATCH_SIZE == 4
+    assert settings.LIVE_SOURCE_MODE == "download"
 
 
 def test_settings_invalid_engine(monkeypatch) -> None:
     monkeypatch.setenv("SEPARATION_ENGINE", "invalid_engine")
     with pytest.raises(ValueError, match="Invalid SEPARATION_ENGINE"):
+        Settings()
+
+
+def test_settings_invalid_live_source_mode(monkeypatch) -> None:
+    monkeypatch.setenv("LIVE_SOURCE_MODE", "invalid_mode")
+    with pytest.raises(ValueError, match="Invalid LIVE_SOURCE_MODE"):
         Settings()
 
 

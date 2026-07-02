@@ -5,6 +5,10 @@ import sys
 from uuid import uuid4
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
+
+from app.config.settings import settings
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Core Live Separation Demo Wrapper")
     parser.add_argument("-u", "--url", required=True, help="YouTube URL to separate")
@@ -15,7 +19,12 @@ def main() -> None:
     parser.add_argument("-f", "--format", default="wav", help="Output format")
     parser.add_argument("--mode", choices=["continuous", "legacy"], default="continuous", help="Playback mode (default: continuous)")
     parser.add_argument("--min-ready-chunks", type=int, default=1, help="Minimum ready chunks required before starting playback (default: 1)")
-    parser.add_argument("--source-mode", default="download", choices=["download", "streaming"], help="Live source mode (default: download)")
+    parser.add_argument(
+        "--source-mode",
+        default=settings.LIVE_SOURCE_MODE,
+        choices=["download", "streaming"],
+        help=f"Live source mode (default: {settings.LIVE_SOURCE_MODE})",
+    )
     parser.add_argument(
         "--initial-buffer-seconds",
         type=float,

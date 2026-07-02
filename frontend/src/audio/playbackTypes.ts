@@ -22,6 +22,8 @@ export interface ScheduledChunk {
   gainNode: GainNode;
   scheduledStartTime: number; // AudioContext time
   scheduledEndTime: number; // AudioContext time
+  displayStartTime: number; // UI playback time, independent from source timestamps
+  displayEndTime: number; // UI playback time, independent from source timestamps
   duration: number;
 }
 

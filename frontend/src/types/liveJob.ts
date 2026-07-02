@@ -21,6 +21,8 @@ export interface LiveJob {
   separator_engine?: 'demucs' | 'mdx_onnx';
   model_name?: string;
   output_format: string;
+  source_mode?: 'download' | 'streaming';
+  initial_buffer_seconds?: number;
   video_title?: string;
   video_duration?: number;
   error_message?: string;

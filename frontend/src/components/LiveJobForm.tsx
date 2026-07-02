@@ -14,6 +14,36 @@ interface LiveJobFormProps {
   error: string | null;
 }
 
+function validateYouTubeUrl(rawUrl: string): string | null {
+  const trimmedUrl = rawUrl.trim();
+
+  if (!trimmedUrl) {
+    return 'YouTube URL is required';
+  }
+
+  if (trimmedUrl.includes('<') || trimmedUrl.includes('>')) {
+    return 'Paste a YouTube URL, not HTML or page markup.';
+  }
+
+  try {
+    const parsedUrl = new URL(trimmedUrl);
+    const hostname = parsedUrl.hostname.replace(/^www\./, '').toLowerCase();
+    const isYouTubeHost =
+      hostname === 'youtube.com' ||
+      hostname === 'm.youtube.com' ||
+      hostname === 'music.youtube.com' ||
+      hostname === 'youtu.be';
+
+    if (!isYouTubeHost) {
+      return 'Enter a valid YouTube URL.';
+    }
+  } catch {
+    return 'Enter a valid YouTube URL.';
+  }
+
+  return null;
+}
+
 export const LiveJobForm: React.FC<LiveJobFormProps> = ({ onSubmit, isLoading, error }) => {
   const [url, setUrl] = useState('');
   const [chunkDuration, setChunkDuration] = useState(30.0);
@@ -28,8 +58,9 @@ export const LiveJobForm: React.FC<LiveJobFormProps> = ({ onSubmit, isLoading, e
     e.preventDefault();
     setValidationError(null);
 
-    if (!url.trim()) {
-      setValidationError('YouTube URL is required');
+    const urlError = validateYouTubeUrl(url);
+    if (urlError) {
+      setValidationError(urlError);
       return;
     }
 
